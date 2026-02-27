@@ -14,6 +14,7 @@ class PurchaseOrderController extends Controller
         return view('purchaseorders.index', [
             'orders' => PurchaseOrder::with(['product', 'variant'])->latest()->get(),
             'products' => Product::with('variants')->get(),
+            'appSettings' => \App\Models\CompanySetting::getCompanyProfile(),
         ]);
     }
 

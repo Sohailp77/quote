@@ -6,28 +6,38 @@
     </x-slot>
 
     <div class="py-6 lg:py-8" x-data="{ 
-        activeTab: @js(session('active_tab', 'general')), 
-        showRateModal: false, 
-        editingRate: null,
-        rateForm: { id: '', name: '', rate: '', is_active: true },
-        showResetModal: false,
-        resetConfirm: ''
-    }">
+    activeTab: '{{ $activeTab }}', 
+    showRateModal: false, 
+    editingRateId: null, 
+    rate_name: '', 
+    rate_value: '', 
+    rate_is_active: true, 
+    showResetModal: false, 
+    resetConfirm: '',
+    openRateModal(id = null, name = '', rate = '', active = true) {
+        this.editingRateId = id;
+        this.rate_name = name;
+        this.rate_value = rate;
+        this.rate_is_active = active;
+        this.showRateModal = true;
+        $nextTick(() => { window.lucide?.createIcons(); });
+    }
+}">
         <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
 
             @if(session('success'))
                 <div x-data="{ show: true }" x-show="show"
-                    class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl relative flex justify-between items-center shadow-sm">
+                    class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl relative flex justify-between items-center shadow-sm transition-all duration-300">
                     <span class="text-sm font-semibold">{{ session('success') }}</span>
                     <button @click="show = false" class="text-emerald-500 hover:text-emerald-700">
                         <x-lucide-x class="w-4 h-4" />
                     </button>
                 </div>
             @endif
-            @if(session('error'))
+            @if(session('error') || $errors->any())
                 <div x-data="{ show: true }" x-show="show"
-                    class="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl relative flex justify-between items-center shadow-sm">
-                    <span class="text-sm font-semibold">{{ session('error') }}</span>
+                    class="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl relative flex justify-between items-center shadow-sm transition-all duration-300">
+                    <span class="text-sm font-semibold">{{ session('error') ?? 'Please correct the errors below.' }}</span>
                     <button @click="show = false" class="text-rose-500 hover:text-rose-700">
                         <x-lucide-x class="w-4 h-4" />
                     </button>
@@ -52,11 +62,9 @@
                         @endphp
 
                         @foreach($navItems as $item)
-                            <button @click="activeTab = '{{ $item['id'] }}'"
+                            <button @click="activeTab = '{{ $item['id'] }}'; $nextTick(() => window.lucide?.createIcons());"
                                 class="flex items-center w-full px-4 py-3 text-sm font-semibold rounded-2xl transition-all"
-                                :class="activeTab === '{{ $item['id'] }}' 
-                                                ? '{{ isset($item['danger']) && $item['danger'] ? 'bg-red-600 text-white shadow-sm' : 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' }}' 
-                                                : '{{ isset($item['danger']) && $item['danger'] ? 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200' }}'">
+                                :class="activeTab === '{{ $item['id'] }}' ? '{{ isset($item['danger']) && $item['danger'] ? 'bg-red-600 text-white shadow-sm' : 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' }}' : '{{ isset($item['danger']) && $item['danger'] ? 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200' }}'">
                                 <x-dynamic-component :component="'lucide-' . ($item['icon'])" class="w-4 h-4 mr-3" />
                                 {{ $item['label'] }}
                             </button>
@@ -70,21 +78,19 @@
                         class="bg-white dark:bg-slate-900 rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-6 min-h-[500px]">
 
                         <!-- GENERAL TAB -->
-                        <div x-show="activeTab === 'general'" style="display: none;">
+                        <div x-show="activeTab === 'general'" x-cloak>
                             <h3
                                 class="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                                 Company Profile</h3>
-                            <form action="{{ route('settings.company-profile.update') }}" method="POST"
+                            <form action="{{ route('settings.general.update') }}" method="POST"
                                 class="space-y-6 max-w-xl">
                                 @csrf
-                                <input type="hidden" name="active_tab" value="general">
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="company_name">Company Name</label>
-                                    <input type="text" name="company_name" id="company_name"
-                                        value="{{ old('company_name', $companyProfile['company_name'] ?? '') }}"
-                                        required
-                                        class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 dark:focus:border-brand-600 focus:ring-brand-500 dark:focus:ring-brand-600 rounded-md shadow-sm">
+                                    <input type="text" name="company_name" id="company_name" required
+                                        value="{{ old('company_name', $profile['company_name'] ?? '') }}"
+                                        class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                     @error('company_name')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>
                                     @enderror
                                 </div>
@@ -92,32 +98,32 @@
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="company_email">Official Email</label>
                                     <input type="email" name="company_email" id="company_email"
-                                        value="{{ old('company_email', $companyProfile['company_email'] ?? '') }}"
-                                        class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 dark:focus:border-brand-600 focus:ring-brand-500 dark:focus:ring-brand-600 rounded-md shadow-sm">
+                                        value="{{ old('company_email', $profile['company_email'] ?? '') }}"
+                                        class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="company_phone">Phone Number</label>
                                     <input type="text" name="company_phone" id="company_phone"
-                                        value="{{ old('company_phone', $companyProfile['company_phone'] ?? '') }}"
-                                        class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 dark:focus:border-brand-600 focus:ring-brand-500 dark:focus:ring-brand-600 rounded-md shadow-sm">
+                                        value="{{ old('company_phone', $profile['company_phone'] ?? '') }}"
+                                        class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="gstin">GSTIN / Tax ID</label>
                                     <input type="text" name="gstin" id="gstin"
-                                        value="{{ old('gstin', $companyProfile['gstin'] ?? '') }}"
-                                        class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 dark:focus:border-brand-600 focus:ring-brand-500 dark:focus:ring-brand-600 rounded-md shadow-sm">
+                                        value="{{ old('gstin', $profile['gstin'] ?? '') }}"
+                                        class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="currency_symbol">Currency Symbol</label>
                                     <select name="currency_symbol" id="currency_symbol"
                                         class="mt-1 block w-full max-w-[120px] border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 rounded-md shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                                        @php $currentCurrency = old('currency_symbol', $profile['currency_symbol'] ?? '₹'); @endphp
                                         @foreach(['$' => '$ (USD)', '€' => '€ (EUR)', '£' => '£ (GBP)', '₹' => '₹ (INR)', '﷼' => '﷼ (SAR)', 'د.إ' => 'د.إ (AED)'] as $sym => $label)
-                                            <option value="{{ $sym }}" {{ old('currency_symbol', $companyProfile['currency_symbol'] ?? '₹') == $sym ? 'selected' : '' }}>
-                                                {{ $label }}
-                                            </option>
+                                            <option value="{{ $sym }}" {{ $currentCurrency === $sym ? 'selected' : '' }}>
+                                                {{ $label }}</option>
                                         @endforeach
                                     </select>
                                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Used on invoices,
@@ -127,11 +133,13 @@
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="company_address">Address</label>
                                     <textarea name="company_address" id="company_address" rows="3"
-                                        class="mt-1 block w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:text-slate-300 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-xl shadow-sm">{{ old('company_address', $companyProfile['company_address'] ?? '') }}</textarea>
+                                        class="mt-1 block w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:text-slate-300 focus:border-slate-400 focus:ring-slate-200 rounded-xl shadow-sm">{{ old('company_address', $profile['company_address'] ?? '') }}</textarea>
                                 </div>
-                                <div class="flex items-center gap-4">
-                                    <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-slate-800 uppercase tracking-widest hover:bg-slate-700 dark:hover:bg-white focus:bg-slate-700 dark:focus:bg-white active:bg-slate-900 dark:active:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition ease-in-out duration-150">
+                                <div
+                                    class="flex items-center gap-4 border-t border-slate-100 dark:border-slate-800 pt-4 mt-6">
+                                    <button type="submit" x-data="{ submitting: false }"
+                                        @submit.window="submitting = true" :class="{ 'opacity-50': submitting }"
+                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition">
                                         Save Profile
                                     </button>
                                 </div>
@@ -139,57 +147,51 @@
                         </div>
 
                         <!-- BANK DETAILS TAB -->
-                        <div x-show="activeTab === 'bank'" style="display: none;">
+                        <div x-show="activeTab === 'bank'" x-cloak>
                             <h3
                                 class="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                                 Bank Details</h3>
                             <p class="text-sm text-slate-400 dark:text-slate-500 mb-6">These details appear on the
                                 bottom of every PDF quotation.</p>
-                            <form action="{{ route('settings.company-profile.update') }}" method="POST"
+                            <form action="{{ route('settings.bank.update') }}" method="POST"
                                 enctype="multipart/form-data" class="space-y-6 max-w-xl">
                                 @csrf
-                                <input type="hidden" name="active_tab" value="bank">
-                                <input type="hidden" name="company_name"
-                                    value="{{ $companyProfile['company_name'] ?? '' }}">
-
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="bank_name">Bank Name</label>
-                                    <input type="text" name="bank_name" id="bank_name"
-                                        value="{{ old('bank_name', $companyProfile['bank_name'] ?? '') }}"
-                                        placeholder="e.g. HDFC Bank"
+                                    <input type="text" name="bank_name" id="bank_name" placeholder="e.g. HDFC Bank"
+                                        value="{{ old('bank_name', $profile['bank_name'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="bank_account_name">Account Name</label>
                                     <input type="text" name="bank_account_name" id="bank_account_name"
-                                        value="{{ old('bank_account_name', $companyProfile['bank_account_name'] ?? '') }}"
                                         placeholder="As per bank records"
+                                        value="{{ old('bank_account_name', $profile['bank_account_name'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="bank_account_number">Account Number</label>
                                     <input type="text" name="bank_account_number" id="bank_account_number"
-                                        value="{{ old('bank_account_number', $companyProfile['bank_account_number'] ?? '') }}"
                                         placeholder="e.g. 50200012345678"
+                                        value="{{ old('bank_account_number', $profile['bank_account_number'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="bank_ifsc">IFSC / SWIFT Code</label>
-                                    <input type="text" name="bank_ifsc" id="bank_ifsc"
-                                        value="{{ old('bank_ifsc', $companyProfile['bank_ifsc'] ?? '') }}"
-                                        placeholder="e.g. HDFC0001234"
+                                    <input type="text" name="bank_ifsc" id="bank_ifsc" placeholder="e.g. HDFC0001234"
+                                        value="{{ old('bank_ifsc', $profile['bank_ifsc'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="bank_branch">Branch</label>
                                     <input type="text" name="bank_branch" id="bank_branch"
-                                        value="{{ old('bank_branch', $companyProfile['bank_branch'] ?? '') }}"
                                         placeholder="e.g. Main Branch, New Delhi"
+                                        value="{{ old('bank_branch', $profile['bank_branch'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
                                 <div>
@@ -197,19 +199,20 @@
                                         for="bank_qr_code">Payment QR Code Image (Optional)</label>
                                     <input type="file" name="bank_qr_code" id="bank_qr_code" accept="image/*"
                                         class="mt-1 block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
-                                    @if(!empty($companyProfile['bank_qr_code']))
+                                    @if(isset($profile['bank_qr_code']) && $profile['bank_qr_code'])
                                         <div class="mt-2 text-sm text-emerald-600 dark:text-emerald-400">
                                             A QR code is currently uploaded. <a
-                                                href="{{ asset('storage/' . $companyProfile['bank_qr_code']) }}"
-                                                target="_blank" class="underline">View QR Code</a>
+                                                href="{{ asset('storage/' . $profile['bank_qr_code']) }}" target="_blank"
+                                                class="underline">View QR Code</a>
                                         </div>
                                     @endif
                                     @error('bank_qr_code')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>
                                     @enderror
                                 </div>
-                                <div class="flex items-center gap-4">
+                                <div
+                                    class="flex items-center gap-4 border-t border-slate-100 dark:border-slate-800 pt-4 mt-6">
                                     <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-slate-800 uppercase tracking-widest hover:bg-slate-700 dark:hover:bg-white focus:bg-slate-700 dark:focus:bg-white transition ease-in-out duration-150">
+                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition">
                                         Save Bank Details
                                     </button>
                                 </div>
@@ -217,25 +220,25 @@
                         </div>
 
                         <!-- THEME TAB -->
-                        <div x-show="activeTab === 'theme'" style="display: none;">
+                        <div x-show="activeTab === 'theme'" x-cloak
+                            x-data="{ brandColor: '{{ old('brand_color_primary', $theme['brand_color_primary'] ?? '#6366f1') }}' }">
                             <h3
                                 class="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                                 Brand & Appearance</h3>
                             <p class="text-sm text-slate-400 dark:text-slate-500 mb-6">Customize the look and feel of
                                 your application and PDF quotes.</p>
-                            <form action="{{ route('settings.theme.update') }}" method="POST" class="space-y-6 max-w-xl"
-                                x-data="{ color: @js(old('brand_color_primary', $themeSettings['brand_color_primary'] ?? '#6366f1')), mode: @js(old('theme_mode', $themeSettings['theme_mode'] ?? 'system')) }">
+                            <form action="{{ route('settings.theme.update') }}" method="POST"
+                                class="space-y-6 max-w-xl">
                                 @csrf
-                                @method('PUT')
-                                <input type="hidden" name="active_tab" value="theme">
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300">Theme
                                         Mode</label>
                                     <div class="mt-2 flex gap-4">
+                                        @php $currentThemeMode = old('theme_mode', $theme['theme_mode'] ?? 'system'); @endphp
                                         @foreach(['light', 'dark', 'system'] as $m)
                                             <div class="flex items-center">
                                                 <input type="radio" id="theme_{{ $m }}" name="theme_mode" value="{{ $m }}"
-                                                    x-model="mode"
+                                                    {{ $currentThemeMode === $m ? 'checked' : '' }}
                                                     class="focus:ring-brand-500 h-4 w-4 text-brand-600 dark:text-brand-400 border-slate-300 dark:border-slate-600 dark:bg-slate-900">
                                                 <label for="theme_{{ $m }}"
                                                     class="ml-2 block text-sm font-medium text-slate-700 dark:text-slate-300 capitalize">{{ $m }}</label>
@@ -248,16 +251,13 @@
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="brand_color_primary">Primary Brand Color</label>
                                     <div class="flex items-center gap-3 mt-2">
-                                        <input type="color" name="brand_color_primary" id="brand_color_primary"
-                                            x-model="color"
+                                        <input type="color" x-model="brandColor" id="brand_color_picker"
                                             class="h-10 w-10 border-0 p-0 rounded-lg cursor-pointer flex-shrink-0">
-                                        <input type="text" x-model="color"
-                                            @input="color = $event.target.value.toUpperCase()"
+                                        <input type="text" name="brand_color_primary" x-model="brandColor"
+                                            id="brand_color_primary"
                                             class="w-32 uppercase font-mono text-sm border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 rounded-md shadow-sm focus:border-brand-500 focus:ring-brand-500"
                                             placeholder="#6366F1" pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$">
                                     </div>
-                                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-2">Pick a custom color
-                                        or enter a HEX code.</p>
 
                                     <div class="mt-4">
                                         <label
@@ -275,20 +275,22 @@
                                                 ];
                                             @endphp
                                             @foreach($colors as $c)
-                                                <button type="button" @click="color = '{{ $c['hex'] }}'"
-                                                    class="w-8 h-8 rounded-full border-2 transition-all shadow-sm"
-                                                    :class="color.toLowerCase() === '{{ strtolower($c['hex']) }}' ? 'border-slate-900 scale-110 ring-2 ring-slate-400 ring-offset-2' : 'border-transparent hover:scale-110 hover:shadow-md'"
+                                                <button type="button" @click="brandColor = '{{ strtolower($c['hex']) }}'"
+                                                    class="w-8 h-8 rounded-full border-2 transition-all shadow-sm border-transparent hover:scale-110"
+                                                    :class="{ 'border-slate-900 dark:border-white scale-110 ring-2 ring-slate-400 ring-offset-2 dark:ring-offset-slate-900': brandColor.toLowerCase() === '{{ strtolower($c['hex']) }}' }"
                                                     style="background-color: {{ $c['hex'] }}"
                                                     title="{{ $c['name'] }}"></button>
                                             @endforeach
                                         </div>
                                     </div>
+                                    @error('brand_color_primary')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+                                    @enderror
                                 </div>
 
                                 <div
                                     class="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                                     <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-slate-800 uppercase tracking-widest hover:bg-slate-700 transition ease-in-out duration-150">
+                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition">
                                         Save Theme Attributes
                                     </button>
                                 </div>
@@ -296,22 +298,20 @@
                         </div>
 
                         <!-- TAX CONFIGURATION TAB -->
-                        <div x-show="activeTab === 'tax_config'" style="display: none;">
+                        <div x-show="activeTab === 'tax_config'" x-cloak
+                            x-data="{ strategy: '{{ old('tax_strategy', $taxConfig['strategy'] ?? 'single') }}' }">
                             <h3
                                 class="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                                 Tax Configuration</h3>
-                            <form action="{{ route('settings.tax-configuration.update') }}" method="POST"
-                                class="space-y-6 max-w-xl"
-                                x-data="{ strategy: @js(old('strategy', $taxConfiguration['strategy'] ?? 'single')) }">
+                            <form action="{{ route('settings.tax-config.update') }}" method="POST"
+                                class="space-y-6 max-w-xl">
                                 @csrf
-                                @method('PUT')
-                                <input type="hidden" name="active_tab" value="tax_config">
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300">Tax
                                         Strategy</label>
                                     <div class="mt-2 space-y-4">
                                         <div class="flex items-center">
-                                            <input type="radio" id="strategy_single" name="strategy" value="single"
+                                            <input type="radio" id="strategy_single" name="tax_strategy" value="single"
                                                 x-model="strategy"
                                                 class="focus:ring-slate-500 h-4 w-4 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600 dark:bg-slate-900">
                                             <label for="strategy_single"
@@ -322,7 +322,7 @@
                                             </label>
                                         </div>
                                         <div class="flex items-center">
-                                            <input type="radio" id="strategy_split" name="strategy" value="split"
+                                            <input type="radio" id="strategy_split" name="tax_strategy" value="split"
                                                 x-model="strategy"
                                                 class="focus:ring-slate-500 h-4 w-4 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600 dark:bg-slate-900">
                                             <label for="strategy_split"
@@ -337,35 +337,35 @@
 
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
-                                        for="primary_label">Primary Tax Label</label>
-                                    <input type="text" name="primary_label" id="primary_label"
-                                        value="{{ old('primary_label', $taxConfiguration['primary_label'] ?? 'Tax') }}"
+                                        for="tax_primary_label">Primary Tax Label</label>
+                                    <input type="text" name="tax_primary_label" id="tax_primary_label"
                                         placeholder="e.g. GST"
+                                        value="{{ old('tax_primary_label', $taxConfig['primary_label'] ?? 'Tax') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
 
-                                <div x-show="strategy === 'split'"
-                                    class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700"
-                                    style="display: none;">
+                                <div x-show="strategy === 'split'" x-cloak
+                                    class="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                                     <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Split
                                         Components Labels</h4>
                                     <div class="grid grid-cols-2 gap-4">
-                                        <input type="text" name="secondary_labels[]"
-                                            value="{{ old('secondary_labels.0', $taxConfiguration['secondary_labels'][0] ?? 'CGST') }}"
+                                        <input type="text" name="tax_secondary_labels[0]"
                                             placeholder="Component 1 (e.g. CGST)"
+                                            value="{{ old('tax_secondary_labels.0', $taxConfig['secondary_labels'][0] ?? 'CGST') }}"
                                             class="block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
-                                        <input type="text" name="secondary_labels[]"
-                                            value="{{ old('secondary_labels.1', $taxConfiguration['secondary_labels'][1] ?? 'SGST') }}"
+                                        <input type="text" name="tax_secondary_labels[1]"
                                             placeholder="Component 2 (e.g. SGST)"
+                                            value="{{ old('tax_secondary_labels.1', $taxConfig['secondary_labels'][1] ?? 'SGST') }}"
                                             class="block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                     </div>
                                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Currently supports 2-way
                                         split (50/50) only.</p>
                                 </div>
 
-                                <div class="flex items-center gap-4 pt-4">
+                                <div
+                                    class="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
                                     <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-slate-800 uppercase tracking-widest hover:bg-slate-700 transition">
+                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition">
                                         Update Configuration
                                     </button>
                                 </div>
@@ -373,13 +373,12 @@
                         </div>
 
                         <!-- TAX RATES TAB -->
-                        <div x-show="activeTab === 'tax_rates'" style="display: none;">
+                        <div x-show="activeTab === 'tax_rates'" x-cloak>
                             <div
                                 class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                                 <h3 class="text-xl font-bold text-slate-900 dark:text-white">Tax Rates Table</h3>
-                                <button
-                                    @click="editingRate = null; rateForm = { id: '', name: '', rate: '', is_active: true }; showRateModal = true"
-                                    class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-slate-800 uppercase tracking-widest hover:bg-slate-700 transition">
+                                <button @click="openRateModal()"
+                                    class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition">
                                     <x-lucide-plus class="w-4 h-4 mr-2" /> Add New Rate
                                 </button>
                             </div>
@@ -408,30 +407,28 @@
                                             <tr>
                                                 <td
                                                     class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
-                                                    {{ $rate->name }}
-                                                </td>
+                                                    {{ $rate->name }}</td>
                                                 <td
                                                     class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                                                    {{ $rate->rate }}%
-                                                </td>
+                                                    {{ $rate->rate }}%</td>
                                                 <td class="px-6 py-4 whitespace-nowrap">
                                                     <span
                                                         class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $rate->is_active ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-400' }}">
                                                         {{ $rate->is_active ? 'Active' : 'Inactive' }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <td
+                                                    class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
                                                     <button
-                                                        @click="editingRate = {{ $rate->id }}; rateForm = { id: {{ $rate->id }}, name: @js($rate->name), rate: {{ $rate->rate }}, is_active: {{ $rate->is_active ? 'true' : 'false' }} }; showRateModal = true"
-                                                        class="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all mr-2">
+                                                        @click="openRateModal({{ $rate->id }}, '{{ addslashes($rate->name) }}', '{{ $rate->rate }}', {{ $rate->is_active ? 'true' : 'false' }})"
+                                                        class="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all">
                                                         <x-lucide-edit-2 class="w-4 h-4" />
                                                     </button>
-                                                    <form action="{{ route('settings.tax-rates.destroy', $rate->id) }}"
-                                                        method="POST" class="inline"
+                                                    <form action="{{ route('settings.tax-rates.destroy', $rate) }}"
+                                                        method="POST"
                                                         onsubmit="return confirm('Are you sure you want to delete this tax rate?');">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <input type="hidden" name="active_tab" value="tax_rates">
                                                         <button type="submit"
                                                             class="p-1.5 text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all">
                                                             <x-lucide-trash-2 class="w-4 h-4" />
@@ -452,51 +449,45 @@
                         </div>
 
                         <!-- BUSINESS GOALS TAB -->
-                        <div x-show="activeTab === 'goals'" style="display: none;">
+                        <div x-show="activeTab === 'goals'" x-cloak>
                             <h3
                                 class="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                                 Business Goals & Targets</h3>
                             <p class="text-sm text-slate-400 dark:text-slate-500 mb-6">Set performance targets to track
                                 your progress on the analytics dashboard.</p>
-                            <form action="{{ route('settings.business-goals.update') }}" method="POST"
+                            <form action="{{ route('settings.goals.update') }}" method="POST"
                                 class="space-y-6 max-w-xl">
                                 @csrf
-                                @method('PUT')
-                                <input type="hidden" name="active_tab" value="goals">
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
-                                        for="monthly_revenue_goal">Monthly Revenue Goal (₹)</label>
+                                        for="monthly_revenue_goal">Monthly Revenue Goal
+                                        ({{ $profile['currency_symbol'] ?? '₹' }})</label>
                                     <input type="number" name="monthly_revenue_goal" id="monthly_revenue_goal"
-                                        value="{{ old('monthly_revenue_goal', $businessGoals['monthly_revenue_goal'] ?? '') }}"
                                         placeholder="e.g. 500000"
+                                        value="{{ old('monthly_revenue_goal', $goals['monthly_revenue_goal'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
-                                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Total revenue target
-                                        from accepted quotes per month.</p>
                                 </div>
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="conversion_rate_goal">Conversion Rate Target (%)</label>
                                     <input type="number" step="0.1" name="conversion_rate_goal"
-                                        id="conversion_rate_goal"
-                                        value="{{ old('conversion_rate_goal', $businessGoals['conversion_rate_goal'] ?? '') }}"
-                                        placeholder="e.g. 25"
+                                        id="conversion_rate_goal" placeholder="e.g. 25"
+                                        value="{{ old('conversion_rate_goal', $goals['conversion_rate_goal'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
-                                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Percentage of
-                                        quotations that turn into accepted orders.</p>
                                 </div>
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
-                                        for="monthly_stock_cost_budget">Monthly Stock Budget (₹)</label>
+                                        for="monthly_stock_cost_budget">Monthly Stock Budget
+                                        ({{ $profile['currency_symbol'] ?? '₹' }})</label>
                                     <input type="number" name="monthly_stock_cost_budget" id="monthly_stock_cost_budget"
-                                        value="{{ old('monthly_stock_cost_budget', $businessGoals['monthly_stock_cost_budget'] ?? '') }}"
                                         placeholder="e.g. 200000"
+                                        value="{{ old('monthly_stock_cost_budget', $goals['monthly_stock_cost_budget'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
-                                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Maximum spending
-                                        limit for restocking/purchase orders per month.</p>
                                 </div>
-                                <div class="flex items-center gap-4 pt-4">
+                                <div
+                                    class="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
                                     <button type="submit"
-                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-slate-800 uppercase tracking-widest hover:bg-slate-700 transition">
+                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition">
                                         Save Goals
                                     </button>
                                 </div>
@@ -504,7 +495,7 @@
                         </div>
 
                         <!-- DANGER ZONE TAB -->
-                        <div x-show="activeTab === 'danger'" style="display: none;">
+                        <div x-show="activeTab === 'danger'" x-cloak>
                             <h3
                                 class="text-xl font-bold text-red-600 dark:text-red-400 border-b border-red-100 dark:border-red-800 pb-4 mb-6">
                                 Danger Zone</h3>
@@ -520,7 +511,7 @@
                                     action is irreversible.
                                 </p>
                                 <button @click="showResetModal = true"
-                                    class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 transition shadow-sm">
+                                    class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 active:bg-red-700 transition shadow-sm">
                                     <x-lucide-alert-triangle class="w-4 h-4 mr-2" /> Start Fresh
                                 </button>
                             </div>
@@ -535,29 +526,28 @@
         <div x-show="showRateModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div x-show="showRateModal" x-transition.opacity
-                    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true"
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true"
                     @click="showRateModal = false"></div>
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                <div x-show="showRateModal" x-transition.scale.origin.bottom.sm
+                <div
                     class="inline-block align-bottom bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                    <form
-                        :action="editingRate ? '{{ url('settings/tax-rates') }}/' + editingRate : '{{ route('settings.tax-rates.store') }}'"
-                        method="POST" class="p-6">
+                    <!-- Alpine binds action URL dynamically if editing vs creating -->
+                    <form method="POST"
+                        :action="editingRateId ? '{{ url("/settings/tax-rates") }}/' + editingRateId : '{{ route("settings.tax-rates.store") }}'"
+                        class="p-6">
                         @csrf
-                        <template x-if="editingRate">
-                            <input type="hidden" name="_method" value="PUT">
+                        <template x-if="editingRateId">
+                            <input type="hidden" name="_method" value="PATCH">
                         </template>
-                        <input type="hidden" name="active_tab" value="tax_rates">
 
                         <h2 class="text-lg font-medium text-slate-900 dark:text-white mb-4"
-                            x-text="editingRate ? 'Edit Tax Rate' : 'Create New Tax Rate'"></h2>
+                            x-text="editingRateId ? 'Edit Tax Rate' : 'Create New Tax Rate'"></h2>
 
                         <div class="space-y-4">
                             <div>
                                 <label class="block font-medium text-sm text-slate-700 dark:text-slate-300">Display
                                     Name</label>
-                                <input type="text" name="name" x-model="rateForm.name" required
+                                <input type="text" name="name" x-model="rate_name" required
                                     class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm"
                                     placeholder="e.g. GST 18%">
                             </div>
@@ -565,16 +555,15 @@
                                 <label class="block font-medium text-sm text-slate-700 dark:text-slate-300">Rate
                                     Percentage</label>
                                 <div class="relative">
-                                    <input type="number" step="0.01" name="rate" x-model="rateForm.rate" required
+                                    <input type="number" step="0.01" name="rate" x-model="rate_value" required
                                         class="mt-1 block w-full pr-8 border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                     <span
                                         class="absolute right-3 top-2.5 text-slate-500 dark:text-slate-400 font-bold text-sm">%</span>
                                 </div>
                             </div>
                             <div class="flex items-center">
-                                <input type="hidden" name="is_active" value="0">
-                                <input type="checkbox" id="is_active" name="is_active" value="1"
-                                    x-model="rateForm.is_active"
+                                <input type="checkbox" id="is_active" name="is_active" x-model="rate_is_active"
+                                    value="1"
                                     class="rounded border-slate-300 dark:border-slate-600 text-brand-600 shadow-sm focus:ring-brand-500 dark:bg-slate-900">
                                 <label for="is_active"
                                     class="ml-2 block text-sm text-slate-900 dark:text-white">Active</label>
@@ -583,10 +572,11 @@
 
                         <div class="mt-6 flex justify-end gap-3">
                             <button type="button" @click="showRateModal = false"
-                                class="inline-flex items-center px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md font-semibold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-widest shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-25 transition">Cancel</button>
+                                class="inline-flex items-center px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md font-semibold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-widest shadow-sm hover:bg-slate-50 transition">Cancel</button>
                             <button type="submit"
-                                class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-slate-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-slate-800 uppercase tracking-widest hover:bg-slate-700 dark:hover:bg-white transition"
-                                x-text="editingRate ? 'Update Rate' : 'Create Rate'"></button>
+                                class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition"
+                                x-text="editingRateId ? 'Update Rate' : 'Create Rate'">
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -597,11 +587,10 @@
         <div x-show="showResetModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto"
             aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div x-show="showResetModal" x-transition.opacity
-                    class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true"
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true"
                     @click="showResetModal = false"></div>
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                <div x-show="showResetModal" x-transition.scale.origin.bottom.sm
+                <div
                     class="inline-block align-bottom bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md w-full">
                     <form action="{{ route('settings.start-fresh') }}" method="POST" class="p-6">
                         @csrf
@@ -618,16 +607,18 @@
                             To confirm, type <strong>DELETE</strong> below:
                         </p>
                         <div class="mb-6">
-                            <input type="text" name="confirmation" x-model="resetConfirm" required
+                            <input type="text" x-model="resetConfirm" required
                                 class="mt-1 block w-full border-red-300 dark:border-red-700 dark:bg-slate-900 dark:text-slate-300 focus:border-red-500 focus:ring-red-500 text-red-900 dark:text-red-400 font-mono shadow-sm rounded-md"
                                 placeholder="Type DELETE">
                         </div>
                         <div class="flex items-center justify-end gap-3 pt-2">
                             <button type="button" @click="showResetModal = false"
-                                class="inline-flex items-center px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md font-semibold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-widest shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">Cancel</button>
+                                class="inline-flex items-center px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md font-semibold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-widest shadow-sm hover:bg-slate-50 transition">Cancel</button>
                             <button type="submit" :disabled="resetConfirm !== 'DELETE'"
-                                class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 active:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Permanently
-                                Wipe Data</button>
+                                :class="resetConfirm === 'DELETE' ? 'bg-red-600 hover:bg-red-500 active:bg-red-700 cursor-pointer' : 'bg-red-600 opacity-50 cursor-not-allowed'"
+                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition">
+                                Permanently Wipe Data
+                            </button>
                         </div>
                     </form>
                 </div>

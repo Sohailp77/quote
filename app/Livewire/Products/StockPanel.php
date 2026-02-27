@@ -56,9 +56,8 @@ class StockPanel extends Component
     {
         $this->validate();
 
-        if (!Gate::allows('boss')) {
-            session()->flash('error', 'Unauthorized Action.');
-            return;
+        if (!auth()->user() || !auth()->user()->isBoss()) {
+            abort(403, 'Unauthorized Action.');
         }
 
         DB::transaction(function () {
@@ -101,7 +100,7 @@ class StockPanel extends Component
 
     public function revert($adjustmentId)
     {
-        if (!Gate::allows('boss')) {
+        if (!auth()->user() || !auth()->user()->isBoss()) {
             session()->flash('error', 'Unauthorized Action.');
             return;
         }

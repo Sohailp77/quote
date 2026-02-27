@@ -26,6 +26,31 @@ class QuoteController extends Controller
 
         return view('quotes.index', compact('quotes'));
     }
+    public function create()
+    {
+        $products = \App\Models\Product::with(['category', 'variants', 'taxRate'])->get();
+        $taxRates = \App\Models\TaxRate::where('is_active', true)->get();
+        $taxSettings = \App\Models\CompanySetting::getTaxConfiguration();
+        $currency = \App\Models\CompanySetting::getCurrencySymbol() ?? '₹';
+
+        return view('quotes.create', compact('products', 'taxRates', 'taxSettings', 'currency'));
+    }
+
+    public function edit(Quote $quote)
+    {
+        if ($quote->status !== 'draft') {
+            abort(403, 'Only draft quotes can be edited.');
+        }
+
+        $quote->load(['items.product', 'items.variant']);
+
+        $products = \App\Models\Product::with(['category', 'variants', 'taxRate'])->get();
+        $taxRates = \App\Models\TaxRate::where('is_active', true)->get();
+        $taxSettings = \App\Models\CompanySetting::getTaxConfiguration();
+        $currency = \App\Models\CompanySetting::getCurrencySymbol() ?? '₹';
+
+        return view('quotes.create', compact('quote', 'products', 'taxRates', 'taxSettings', 'currency'));
+    }
 
     // Store the complete quote
     public function store(Request $request)

@@ -1,66 +1,36 @@
 <?php
 
-namespace App\Livewire\Dashboard;
+namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Quote;
 use App\Models\QuoteItem;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Livewire\Component;
-use Livewire\WithPagination;
 
-class Index extends Component
+class DashboardController extends Controller
 {
-    use WithPagination;
-
-    public $timeframe = 'monthly'; // 'weekly', 'monthly', 'yearly', 'all'
-    public $userRole;
-
-    public function mount()
+    public function index(Request $request)
     {
-        $this->userRole = auth()->user()->isBoss() ? 'boss' : 'employee';
-    }
-
-    public function setTimeframe($timeframe)
-    {
-        $this->timeframe = $timeframe;
-        $this->resetPage(); // Reset pagination when filter changes
-    }
-
-    protected function getDateRange()
-    {
-        return match ($this->timeframe) {
-            'weekly' => [now()->startOfWeek(), now()->endOfWeek()],
-            'monthly' => [now()->startOfMonth(), now()->endOfMonth()],
-            'yearly' => [now()->startOfYear(), now()->endOfYear()],
-            default => [null, null], // 'all' time
-        };
-    }
-
-    protected function applyDateFilter($query, $column = 'created_at')
-    {
-        if ($this->timeframe === 'all') {
-            return;
+        $timeframe = $request->query('timeframe', 'monthly');
+        $validTimeframes = ['weekly', 'monthly', 'yearly', 'all'];
+        if (!in_array($timeframe, $validTimeframes)) {
+            $timeframe = 'monthly';
         }
 
-        [$start, $end] = $this->getDateRange();
-        $query->whereBetween($column, [$start, $end]);
-    }
-
-    public function render()
-    {
         $user = auth()->user();
         $isBoss = $user->isBoss();
+        $userRole = $isBoss ? 'boss' : 'employee';
 
-        // ── Base Queries ──────────────────────────────────────────────────────────
         $quotesQuery = Quote::query();
         if (!$isBoss) {
             $quotesQuery->where('user_id', $user->id);
         }
 
-        // Global KPIs (Independent of timeframe filter, except where explicitly filtered)
+        // Global KPIs
         $totalQuotes = (clone $quotesQuery)->count();
         $totalRevenueList = clone $quotesQuery;
         $totalRevenue = $totalRevenueList->where('status', 'accepted')->sum('total_amount');
@@ -76,15 +46,27 @@ class Index extends Component
         $expiredCount = $statusBreakdown['expired'] ?? 0;
         $conversionRate = $totalQuotes > 0 ? round(($acceptedCount / $totalQuotes) * 100, 1) : 0;
 
-        // ── Timeframe Filtered KPIs ───────────────────────────────────────────────
+        // Timeframe filter logic
         $filteredQuotesQuery = clone $quotesQuery;
-        $this->applyDateFilter($filteredQuotesQuery);
+        if ($timeframe !== 'all') {
+            $start = match ($timeframe) {
+                'weekly' => now()->startOfWeek(),
+                'monthly' => now()->startOfMonth(),
+                'yearly' => now()->startOfYear(),
+            };
+            $end = match ($timeframe) {
+                'weekly' => now()->endOfWeek(),
+                'monthly' => now()->endOfMonth(),
+                'yearly' => now()->endOfYear(),
+            };
+            $filteredQuotesQuery->whereBetween('created_at', [$start, $end]);
+        }
 
         $filteredRevenueQuery = clone $filteredQuotesQuery;
         $currentRevenue = $filteredRevenueQuery->where('status', 'accepted')->sum('total_amount');
 
         $growth = null;
-        if ($this->timeframe === 'monthly' && $isBoss) {
+        if ($timeframe === 'monthly' && $isBoss) {
             $lastMonthRevenue = (clone $quotesQuery)->where('status', 'accepted')->whereBetween('created_at', [
                 now()->subMonth()->startOfMonth(),
                 now()->subMonth()->endOfMonth()
@@ -92,7 +74,7 @@ class Index extends Component
             $growth = $lastMonthRevenue > 0 ? round((($currentRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1) : null;
         }
 
-        // ── Charts & Tables ───────────────────────────────────────────────────────
+        // Charts & Tables
         $dailyRevenue = collect(range(6, 0))->map(function ($daysAgo) use ($quotesQuery) {
             $date = now()->subDays($daysAgo)->toDateString();
             return (clone $quotesQuery)->where('status', 'accepted')->whereDate('created_at', $date)->sum('total_amount');
@@ -100,6 +82,7 @@ class Index extends Component
 
         // Paginated Recent Quotes (Filtered by timeframe)
         $recentQuotes = $filteredQuotesQuery->with('user:id,name')->latest()->paginate(5);
+        $recentQuotes->appends(['timeframe' => $timeframe]);
 
         // Top Products
         $topProductsQuery = QuoteItem::select('product_id', DB::raw('COUNT(*) as quote_count'), DB::raw('SUM(quantity) as total_qty'))
@@ -111,7 +94,7 @@ class Index extends Component
         }
         $topProducts = $topProductsQuery->get();
 
-        // ── Boss Specific Data ────────────────────────────────────────────────────
+        // Boss Specific Data
         $employeePerformance = collect();
         $lowStockAlerts = collect();
 
@@ -131,7 +114,7 @@ class Index extends Component
                     return $item;
                 });
 
-            $lowStockVariants = \App\Models\ProductVariant::where('stock_quantity', '<=', 5)
+            $lowStockVariants = ProductVariant::where('stock_quantity', '<=', 5)
                 ->with('product:id,name')
                 ->get()
                 ->map(function ($item) {
@@ -152,29 +135,35 @@ class Index extends Component
                 ->values();
         }
 
-        return view('components.dashboard.index', [
-            'stats' => [
-                'total_categories' => Category::count(),
-                'total_products' => Product::count(),
-            ],
-            'quoteStats' => [
-                'total_quotes' => $totalQuotes,
-                'total_revenue' => $totalRevenue,
-                'filtered_revenue' => $currentRevenue,
-                'avg_deal_size' => $avgDealSize,
-                'conversion_rate' => $conversionRate,
-                'accepted_count' => $acceptedCount,
-                'sent_count' => $sentCount,
-                'draft_count' => $draftCount,
-                'rejected_count' => $rejectedCount,
-                'expired_count' => $expiredCount,
-                'recent_quotes' => $recentQuotes,
-                'top_products' => $topProducts,
-                'daily_revenue' => $dailyRevenue,
-                'growth' => $growth,
-            ],
-            'employeePerformance' => $employeePerformance,
-            'lowStockProducts' => $lowStockAlerts,
-        ]);
+        $stats = [
+            'total_categories' => Category::count(),
+            'total_products' => Product::count(),
+        ];
+
+        $quoteStats = [
+            'total_quotes' => $totalQuotes,
+            'total_revenue' => $totalRevenue,
+            'filtered_revenue' => $currentRevenue,
+            'avg_deal_size' => $avgDealSize,
+            'conversion_rate' => $conversionRate,
+            'accepted_count' => $acceptedCount,
+            'sent_count' => $sentCount,
+            'draft_count' => $draftCount,
+            'rejected_count' => $rejectedCount,
+            'expired_count' => $expiredCount,
+            'recent_quotes' => $recentQuotes,
+            'top_products' => $topProducts,
+            'daily_revenue' => $dailyRevenue,
+            'growth' => $growth,
+        ];
+
+        return view('dashboard', compact(
+            'timeframe',
+            'userRole',
+            'stats',
+            'quoteStats',
+            'employeePerformance',
+            'lowStockAlerts'
+        ));
     }
 }

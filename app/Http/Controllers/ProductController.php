@@ -65,9 +65,12 @@ class ProductController extends Controller
     {
         $product->load(['category', 'variants', 'taxRate', 'stockAdjustments.user', 'stockAdjustments.quote:id,reference_id']);
 
+        $appSettings = \App\Models\CompanySetting::pluck('value', 'key')->all();
+
         return view('products.show', [
             'product' => $product,
             'isBoss' => auth()->user()->isBoss(),
+            'appSettings' => $appSettings,
         ]);
     }
 

@@ -62,21 +62,19 @@ class CreateOrder extends Component
 
     public function save()
     {
-        if (!Gate::allows('boss')) {
-            session()->flash('error', 'Unauthorized Action.');
-            return;
+        if (!auth()->user() || !auth()->user()->isBoss()) {
+            abort(403, 'Unauthorized Action.');
         }
 
         $validated = $this->validate();
 
         PurchaseOrder::create([
             'product_id' => $validated['product_id'],
-            'product_variant_id' => $validated['product_variant_id'] ?? null,
+            'product_variant_id' => (isset($validated['product_variant_id']) && $validated['product_variant_id'] !== '') ? $validated['product_variant_id'] : null,
             'quantity' => $validated['quantity'],
             'unit_cost' => $validated['unit_cost'],
             'estimated_arrival' => $validated['estimated_arrival'] ?? null,
             'status' => 'pending',
-            'created_by' => auth()->id(),
         ]);
 
         $this->closeModal();
