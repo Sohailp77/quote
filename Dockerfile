@@ -1,9 +1,16 @@
 FROM php:8.3-cli
 
-# Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git unzip libpq-dev nodejs npm \
-    && docker-php-ext-install pdo pdo_pgsql
+    git unzip libpq-dev libpng-dev libjpeg-dev libfreetype6-dev \
+    libzip-dev zip nodejs npm \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
+        pdo \
+        pdo_pgsql \
+        gd \
+        bcmath \
+        zip
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
