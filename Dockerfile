@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git unzip libpq-dev libpng-dev libjpeg-dev libfreetype6-dev \
     libzip-dev zip nodejs npm \
@@ -15,30 +15,34 @@ RUN apt-get update && apt-get install -y \
 # Enable Apache rewrite
 RUN a2enmod rewrite
 
-# Set document root to Laravel public folder
-ENV APACHE_DOCUMENT_ROOT /app/public
+# Set Laravel public as document root
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 
+# Update Apache config to use public folder
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
-    /etc/apache2/sites-available/*.conf \
-    /etc/apache2/apache2.conf \
-    /etc/apache2/conf-available/*.conf
+    /etc/apache2/sites-available/000-default.conf
+
+# Allow .htaccess overrides (IMPORTANT)
+RUN echo "<Directory /var/www/html/public>\n\
+    AllowOverride All\n\
+    Require all granted\n\
+</Directory>" >> /etc/apache2/apache2.conf
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-WORKDIR /app
+WORKDIR /var/www/html
 
 COPY . .
 
-# Install PHP dependencies
+# Install dependencies
 RUN composer install --no-dev --optimize-autoloader
 
 # Build frontend
 RUN npm install && npm run build
 
-# Set permissions
-RUN chown -R www-data:www-data /app \
-    && chmod -R 775 /app/storage \
-    && chmod -R 775 /app/bootstrap/cache
+# Fix permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 80
