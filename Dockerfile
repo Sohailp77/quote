@@ -1,4 +1,4 @@
-FROM php:8.3-cli
+FROM php:8.3-apache
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -11,6 +11,17 @@ RUN apt-get update && apt-get install -y \
         gd \
         bcmath \
         zip
+
+# Enable Apache rewrite
+RUN a2enmod rewrite
+
+# Set document root to Laravel public folder
+ENV APACHE_DOCUMENT_ROOT /app/public
+
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
+    /etc/apache2/sites-available/*.conf \
+    /etc/apache2/apache2.conf \
+    /etc/apache2/conf-available/*.conf
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -25,6 +36,9 @@ RUN composer install --no-dev --optimize-autoloader
 # Build frontend
 RUN npm install && npm run build
 
-EXPOSE 10000
+# Set permissions
+RUN chown -R www-data:www-data /app \
+    && chmod -R 775 /app/storage \
+    && chmod -R 775 /app/bootstrap/cache
 
-CMD php -S 0.0.0.0:10000 -t public
+EXPOSE 80
