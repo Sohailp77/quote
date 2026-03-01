@@ -11,10 +11,19 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $query = Product::with(['category', 'taxRate']);
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+        }
+
         return view('products.index', [
-            'products' => Product::with(['category', 'taxRate'])->latest()->get()
+            'products' => $query->latest()->get()
         ]);
     }
 

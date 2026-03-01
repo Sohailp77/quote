@@ -53,11 +53,13 @@
                                 <option value="weight">Weight (Kg / Tons)</option>
                             </select>
                             <x-input-error :messages="$errors->get('metric_type')" class="mt-2" />
-                            <p class="mt-1 text-xs text-slate-400 dark:text-slate-500" x-text="
+                            <p class="mt-1 text-xs text-slate-400 dark:text-slate-500"
+                                x-text="
                                 metricType === 'area' ? 'For items like Tiles (Coverage per Box)' :
                                 (metricType === 'weight' ? 'For items like Cement (Weight per Bag)' :
                                 'For standard items like Basins')
-                            "></p>
+                            ">
+                            </p>
                         </div>
                     </div>
 
@@ -76,8 +78,7 @@
                             class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Description</label>
                         <textarea id="description" name="description"
                             class="mt-1 block w-full bg-slate-50 dark:bg-slate-800 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-xl shadow-sm text-sm"
-                            rows="4"
-                            placeholder="Describe what this category contains...">{{ old('description') }}</textarea>
+                            rows="4" placeholder="Describe what this category contains...">{{ old('description') }}</textarea>
                         <x-input-error :messages="$errors->get('description')" class="mt-2" />
                     </div>
 

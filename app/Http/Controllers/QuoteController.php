@@ -22,9 +22,50 @@ class QuoteController extends Controller
             $query->where('user_id', auth()->id());
         }
 
-        $quotes = $query->latest()->paginate(15);
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('reference_id', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_email', 'like', "%{$search}%")
+                  ->orWhere('customer_phone', 'like', "%{$search}%");
+            });
+        }
 
-        return view('quotes.index', compact('quotes'));
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        // Delivery status filter
+        if ($request->filled('delivery_status')) {
+            $query->where('delivery_status', $request->input('delivery_status'));
+        }
+
+        // Custom date range (based on created_at)
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+
+        // Overdue filter – accepted + delivery date passed + not delivered
+        if ($request->boolean('overdue')) {
+            $query->where('status', 'accepted')
+                  ->whereNotNull('delivery_date')
+                  ->where('delivery_date', '<', now()->toDateString())
+                  ->where(function ($q) {
+                      $q->where('delivery_status', '!=', 'delivered')
+                        ->orWhereNull('delivery_status');
+                  });
+        }
+
+        $filters = $request->only(['search', 'status', 'delivery_status', 'date_from', 'date_to', 'overdue']);
+        $quotes  = $query->latest()->paginate(15)->withQueryString();
+
+        return view('quotes.index', compact('quotes', 'filters'));
     }
     public function create()
     {
@@ -148,6 +189,10 @@ class QuoteController extends Controller
 
         $validated = $request->validate([
             'status' => ['required', 'in:' . implode(',', $allowedTransitions)],
+            'delivery_date' => ['nullable', 'date'],
+            'delivery_time' => ['nullable', 'string'],
+            'delivery_partner' => ['nullable', 'string', 'max:255'],
+            'tracking_number' => ['nullable', 'string', 'max:255'],
         ]);
 
         $oldStatus = $quote->status;
@@ -157,7 +202,7 @@ class QuoteController extends Controller
             return back()->with('success', 'Quote status is already ' . $newStatus);
         }
 
-        return DB::transaction(function () use ($request, $quote, $oldStatus, $newStatus, $user) {
+        return DB::transaction(function () use ($request, $quote, $oldStatus, $newStatus, $user, $validated) {
             // Stock Warning Logic: Check if we have enough stock for all items
             if ($newStatus === 'accepted' && $oldStatus !== 'accepted' && !$request->boolean('force')) {
                 $quote->load('items.product', 'items.variant');
@@ -192,6 +237,16 @@ class QuoteController extends Controller
             }
 
             $quote->status = $newStatus;
+            
+            // Save Delivery Information if moving to Accepted
+            if ($newStatus === 'accepted') {
+                $quote->delivery_date = $validated['delivery_date'] ?? null;
+                $quote->delivery_time = $validated['delivery_time'] ?? null;
+                $quote->delivery_partner = $validated['delivery_partner'] ?? null;
+                $quote->tracking_number = $validated['tracking_number'] ?? null;
+                $quote->delivery_status = 'pending'; // Default when just accepted
+            }
+
             $quote->save();
 
             // 1. Moving TO Accepted (Deduct stock, add Revenue)
@@ -288,5 +343,33 @@ class QuoteController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="quote_' . $quote->reference_id . '.pdf"'
         ]);
+    }
+
+    /**
+     * Update delivery details for an accepted quote.
+     * Also handles early delivery completion.
+     */
+    public function updateDelivery(Request $request, Quote $quote)
+    {
+        if ($quote->status !== 'accepted') {
+            return back()->with('error', 'Delivery details can only be updated for accepted quotes.');
+        }
+
+        $validated = $request->validate([
+            'delivery_date'    => ['nullable', 'date'],
+            'delivery_time'    => ['nullable', 'string'],
+            'delivery_partner' => ['nullable', 'string', 'max:255'],
+            'tracking_number'  => ['nullable', 'string', 'max:255'],
+            'delivery_status'  => ['nullable', 'in:pending,shipped,delivered'],
+            'delivery_note'    => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $quote->update($validated);
+
+        $msg = $validated['delivery_status'] === 'delivered'
+            ? '🎉 Delivery marked as completed!'
+            : 'Delivery details updated successfully.';
+
+        return back()->with('success', $msg);
     }
 }

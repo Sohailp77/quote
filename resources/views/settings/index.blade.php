@@ -5,27 +5,27 @@
         </h2>
     </x-slot>
 
-    <div class="py-6 lg:py-8" x-data="{ 
-    activeTab: '{{ $activeTab }}', 
-    showRateModal: false, 
-    editingRateId: null, 
-    rate_name: '', 
-    rate_value: '', 
-    rate_is_active: true, 
-    showResetModal: false, 
-    resetConfirm: '',
-    openRateModal(id = null, name = '', rate = '', active = true) {
-        this.editingRateId = id;
-        this.rate_name = name;
-        this.rate_value = rate;
-        this.rate_is_active = active;
-        this.showRateModal = true;
-        $nextTick(() => { window.lucide?.createIcons(); });
-    }
-}">
+    <div class="py-6 lg:py-8" x-data="{
+        activeTab: '{{ $activeTab }}',
+        showRateModal: false,
+        editingRateId: null,
+        rate_name: '',
+        rate_value: '',
+        rate_is_active: true,
+        showResetModal: false,
+        resetConfirm: '',
+        openRateModal(id = null, name = '', rate = '', active = true) {
+            this.editingRateId = id;
+            this.rate_name = name;
+            this.rate_value = rate;
+            this.rate_is_active = active;
+            this.showRateModal = true;
+            $nextTick(() => { window.lucide?.createIcons(); });
+        }
+    }">
         <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
 
-            @if(session('success'))
+            @if (session('success'))
                 <div x-data="{ show: true }" x-show="show"
                     class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl relative flex justify-between items-center shadow-sm transition-all duration-300">
                     <span class="text-sm font-semibold">{{ session('success') }}</span>
@@ -34,10 +34,11 @@
                     </button>
                 </div>
             @endif
-            @if(session('error') || $errors->any())
+            @if (session('error') || $errors->any())
                 <div x-data="{ show: true }" x-show="show"
                     class="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl relative flex justify-between items-center shadow-sm transition-all duration-300">
-                    <span class="text-sm font-semibold">{{ session('error') ?? 'Please correct the errors below.' }}</span>
+                    <span
+                        class="text-sm font-semibold">{{ session('error') ?? 'Please correct the errors below.' }}</span>
                     <button @click="show = false" class="text-rose-500 hover:text-rose-700">
                         <x-lucide-x class="w-4 h-4" />
                     </button>
@@ -57,15 +58,23 @@
                                 ['id' => 'tax_config', 'label' => 'Tax Configuration', 'icon' => 'settings'],
                                 ['id' => 'tax_rates', 'label' => 'Tax Rates', 'icon' => 'percent'],
                                 ['id' => 'goals', 'label' => 'Business Goals', 'icon' => 'target'],
-                                ['id' => 'danger', 'label' => 'Danger Zone', 'icon' => 'alert-triangle', 'danger' => true],
+                                [
+                                    'id' => 'danger',
+                                    'label' => 'Danger Zone',
+                                    'icon' => 'alert-triangle',
+                                    'danger' => true,
+                                ],
                             ];
                         @endphp
 
-                        @foreach($navItems as $item)
-                            <button @click="activeTab = '{{ $item['id'] }}'; $nextTick(() => window.lucide?.createIcons());"
+                        @foreach ($navItems as $item)
+                            <button
+                                @click="activeTab = '{{ $item['id'] }}'; $nextTick(() => window.lucide?.createIcons());"
                                 class="flex items-center w-full px-4 py-3 text-sm font-semibold rounded-2xl transition-all"
-                                :class="activeTab === '{{ $item['id'] }}' ? '{{ isset($item['danger']) && $item['danger'] ? 'bg-red-600 text-white shadow-sm' : 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' }}' : '{{ isset($item['danger']) && $item['danger'] ? 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200' }}'">
-                                <x-dynamic-component :component="'lucide-' . ($item['icon'])" class="w-4 h-4 mr-3" />
+                                :class="activeTab === '{{ $item['id'] }}' ?
+                                    '{{ isset($item['danger']) && $item['danger'] ? 'bg-red-600 text-white shadow-sm' : 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' }}' :
+                                    '{{ isset($item['danger']) && $item['danger'] ? 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200' }}'">
+                                <x-dynamic-component :component="'lucide-' . $item['icon']" class="w-4 h-4 mr-3" />
                                 {{ $item['label'] }}
                             </button>
                         @endforeach
@@ -91,7 +100,8 @@
                                     <input type="text" name="company_name" id="company_name" required
                                         value="{{ old('company_name', $profile['company_name'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
-                                    @error('company_name')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+                                    @error('company_name')
+                                        <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
                                     @enderror
                                 </div>
                                 <div>
@@ -121,8 +131,10 @@
                                     <select name="currency_symbol" id="currency_symbol"
                                         class="mt-1 block w-full max-w-[120px] border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 rounded-md shadow-sm focus:border-brand-500 focus:ring-brand-500">
                                         @php $currentCurrency = old('currency_symbol', $profile['currency_symbol'] ?? '₹'); @endphp
-                                        @foreach(['$' => '$ (USD)', '€' => '€ (EUR)', '£' => '£ (GBP)', '₹' => '₹ (INR)', '﷼' => '﷼ (SAR)', 'د.إ' => 'د.إ (AED)'] as $sym => $label)
-                                            <option value="{{ $sym }}" {{ $currentCurrency === $sym ? 'selected' : '' }}>
+                                        {{-- @foreach (['$' => '$ (USD)', '€' => '€ (EUR)', '£' => '£ (GBP)', '₹' => '₹ (INR)', '﷼' => '﷼ (SAR)', 'د.إ' => 'د.إ (AED)'] as $sym => $label) --}}
+                                            @foreach (['₹' => '₹ (INR)'] as $sym => $label)
+                                            <option value="{{ $sym }}"
+                                                {{ $currentCurrency === $sym ? 'selected' : '' }}>
                                                 {{ $label }}</option>
                                         @endforeach
                                     </select>
@@ -137,8 +149,8 @@
                                 </div>
                                 <div
                                     class="flex items-center gap-4 border-t border-slate-100 dark:border-slate-800 pt-4 mt-6">
-                                    <button type="submit" x-data="{ submitting: false }"
-                                        @submit.window="submitting = true" :class="{ 'opacity-50': submitting }"
+                                    <button type="submit" x-data="{ submitting: false }" @submit.window="submitting = true"
+                                        :class="{ 'opacity-50': submitting }"
                                         class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition">
                                         Save Profile
                                     </button>
@@ -182,7 +194,8 @@
                                 <div>
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="bank_ifsc">IFSC / SWIFT Code</label>
-                                    <input type="text" name="bank_ifsc" id="bank_ifsc" placeholder="e.g. HDFC0001234"
+                                    <input type="text" name="bank_ifsc" id="bank_ifsc"
+                                        placeholder="e.g. HDFC0001234"
                                         value="{{ old('bank_ifsc', $profile['bank_ifsc'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
@@ -199,14 +212,15 @@
                                         for="bank_qr_code">Payment QR Code Image (Optional)</label>
                                     <input type="file" name="bank_qr_code" id="bank_qr_code" accept="image/*"
                                         class="mt-1 block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
-                                    @if(isset($profile['bank_qr_code']) && $profile['bank_qr_code'])
+                                    @if (isset($profile['bank_qr_code']) && $profile['bank_qr_code'])
                                         <div class="mt-2 text-sm text-emerald-600 dark:text-emerald-400">
                                             A QR code is currently uploaded. <a
-                                                href="{{ asset('storage/' . $profile['bank_qr_code']) }}" target="_blank"
-                                                class="underline">View QR Code</a>
+                                                href="{{ asset('storage/' . $profile['bank_qr_code']) }}"
+                                                target="_blank" class="underline">View QR Code</a>
                                         </div>
                                     @endif
-                                    @error('bank_qr_code')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+                                    @error('bank_qr_code')
+                                        <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
                                     @enderror
                                 </div>
                                 <div
@@ -220,8 +234,7 @@
                         </div>
 
                         <!-- THEME TAB -->
-                        <div x-show="activeTab === 'theme'" x-cloak
-                            x-data="{ brandColor: '{{ old('brand_color_primary', $theme['brand_color_primary'] ?? '#6366f1') }}' }">
+                        <div x-show="activeTab === 'theme'" x-cloak x-data="{ brandColor: '{{ old('brand_color_primary', $theme['brand_color_primary'] ?? '#6366f1') }}' }">
                             <h3
                                 class="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                                 Brand & Appearance</h3>
@@ -235,9 +248,10 @@
                                         Mode</label>
                                     <div class="mt-2 flex gap-4">
                                         @php $currentThemeMode = old('theme_mode', $theme['theme_mode'] ?? 'system'); @endphp
-                                        @foreach(['light', 'dark', 'system'] as $m)
+                                        @foreach (['light', 'dark', 'system'] as $m)
                                             <div class="flex items-center">
-                                                <input type="radio" id="theme_{{ $m }}" name="theme_mode" value="{{ $m }}"
+                                                <input type="radio" id="theme_{{ $m }}"
+                                                    name="theme_mode" value="{{ $m }}"
                                                     {{ $currentThemeMode === $m ? 'checked' : '' }}
                                                     class="focus:ring-brand-500 h-4 w-4 text-brand-600 dark:text-brand-400 border-slate-300 dark:border-slate-600 dark:bg-slate-900">
                                                 <label for="theme_{{ $m }}"
@@ -271,19 +285,22 @@
                                                     ['name' => 'Vibrant Rose', 'hex' => '#f43f5e'],
                                                     ['name' => 'Warm Amber', 'hex' => '#f59e0b'],
                                                     ['name' => 'Ocean Sky', 'hex' => '#0ea5e9'],
-                                                    ['name' => 'Professional Slate', 'hex' => '#475569']
+                                                    ['name' => 'Professional Slate', 'hex' => '#475569'],
                                                 ];
                                             @endphp
-                                            @foreach($colors as $c)
-                                                <button type="button" @click="brandColor = '{{ strtolower($c['hex']) }}'"
+                                            @foreach ($colors as $c)
+                                                <button type="button"
+                                                    @click="brandColor = '{{ strtolower($c['hex']) }}'"
                                                     class="w-8 h-8 rounded-full border-2 transition-all shadow-sm border-transparent hover:scale-110"
-                                                    :class="{ 'border-slate-900 dark:border-white scale-110 ring-2 ring-slate-400 ring-offset-2 dark:ring-offset-slate-900': brandColor.toLowerCase() === '{{ strtolower($c['hex']) }}' }"
+                                                    :class="{ 'border-slate-900 dark:border-white scale-110 ring-2 ring-slate-400 ring-offset-2 dark:ring-offset-slate-900': brandColor
+                                                            .toLowerCase() === '{{ strtolower($c['hex']) }}' }"
                                                     style="background-color: {{ $c['hex'] }}"
                                                     title="{{ $c['name'] }}"></button>
                                             @endforeach
                                         </div>
                                     </div>
-                                    @error('brand_color_primary')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+                                    @error('brand_color_primary')
+                                        <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
                                     @enderror
                                 </div>
 
@@ -298,8 +315,7 @@
                         </div>
 
                         <!-- TAX CONFIGURATION TAB -->
-                        <div x-show="activeTab === 'tax_config'" x-cloak
-                            x-data="{ strategy: '{{ old('tax_strategy', $taxConfig['strategy'] ?? 'single') }}' }">
+                        <div x-show="activeTab === 'tax_config'" x-cloak x-data="{ strategy: '{{ old('tax_strategy', $taxConfig['strategy'] ?? 'single') }}' }">
                             <h3
                                 class="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
                                 Tax Configuration</h3>
@@ -311,8 +327,8 @@
                                         Strategy</label>
                                     <div class="mt-2 space-y-4">
                                         <div class="flex items-center">
-                                            <input type="radio" id="strategy_single" name="tax_strategy" value="single"
-                                                x-model="strategy"
+                                            <input type="radio" id="strategy_single" name="tax_strategy"
+                                                value="single" x-model="strategy"
                                                 class="focus:ring-slate-500 h-4 w-4 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600 dark:bg-slate-900">
                                             <label for="strategy_single"
                                                 class="ml-3 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -322,8 +338,8 @@
                                             </label>
                                         </div>
                                         <div class="flex items-center">
-                                            <input type="radio" id="strategy_split" name="tax_strategy" value="split"
-                                                x-model="strategy"
+                                            <input type="radio" id="strategy_split" name="tax_strategy"
+                                                value="split" x-model="strategy"
                                                 class="focus:ring-slate-500 h-4 w-4 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600 dark:bg-slate-900">
                                             <label for="strategy_split"
                                                 class="ml-3 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -479,8 +495,8 @@
                                     <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
                                         for="monthly_stock_cost_budget">Monthly Stock Budget
                                         ({{ $profile['currency_symbol'] ?? '₹' }})</label>
-                                    <input type="number" name="monthly_stock_cost_budget" id="monthly_stock_cost_budget"
-                                        placeholder="e.g. 200000"
+                                    <input type="number" name="monthly_stock_cost_budget"
+                                        id="monthly_stock_cost_budget" placeholder="e.g. 200000"
                                         value="{{ old('monthly_stock_cost_budget', $goals['monthly_stock_cost_budget'] ?? '') }}"
                                         class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                 </div>
@@ -533,7 +549,8 @@
                     class="inline-block align-bottom bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
                     <!-- Alpine binds action URL dynamically if editing vs creating -->
                     <form method="POST"
-                        :action="editingRateId ? '{{ url("/settings/tax-rates") }}/' + editingRateId : '{{ route("settings.tax-rates.store") }}'"
+                        :action="editingRateId ? '{{ url('/settings/tax-rates') }}/' + editingRateId :
+                            '{{ route('settings.tax-rates.store') }}'"
                         class="p-6">
                         @csrf
                         <template x-if="editingRateId">
@@ -555,7 +572,8 @@
                                 <label class="block font-medium text-sm text-slate-700 dark:text-slate-300">Rate
                                     Percentage</label>
                                 <div class="relative">
-                                    <input type="number" step="0.01" name="rate" x-model="rate_value" required
+                                    <input type="number" step="0.01" name="rate" x-model="rate_value"
+                                        required
                                         class="mt-1 block w-full pr-8 border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-md shadow-sm">
                                     <span
                                         class="absolute right-3 top-2.5 text-slate-500 dark:text-slate-400 font-bold text-sm">%</span>
@@ -615,7 +633,9 @@
                             <button type="button" @click="showResetModal = false"
                                 class="inline-flex items-center px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md font-semibold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-widest shadow-sm hover:bg-slate-50 transition">Cancel</button>
                             <button type="submit" :disabled="resetConfirm !== 'DELETE'"
-                                :class="resetConfirm === 'DELETE' ? 'bg-red-600 hover:bg-red-500 active:bg-red-700 cursor-pointer' : 'bg-red-600 opacity-50 cursor-not-allowed'"
+                                :class="resetConfirm === 'DELETE' ?
+                                    'bg-red-600 hover:bg-red-500 active:bg-red-700 cursor-pointer' :
+                                    'bg-red-600 opacity-50 cursor-not-allowed'"
                                 class="inline-flex items-center px-4 py-2 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition">
                                 Permanently Wipe Data
                             </button>

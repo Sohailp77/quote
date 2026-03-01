@@ -3,7 +3,7 @@
         class="bg-slate-50/50 dark:bg-slate-800/50 min-h-screen rounded-[40px] p-6 lg:p-8 font-sans text-slate-800 dark:text-slate-200">
 
         <!-- Header -->
-        <div class="flex items-center justify-between mb-8 gap-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div class="flex items-center gap-3">
                 <a href="{{ route('dashboard') }}"
                     class="w-10 h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 transition shadow-sm">
@@ -15,8 +15,12 @@
                         arrivals</p>
                 </div>
             </div>
-            <!-- Livewire Create Order Button + Modal -->
-            <livewire:purchase-orders.create-order :products="$products" :appSettings="$appSettings" />
+
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <x-search-bar placeholder="Search reorders..." />
+                <!-- Livewire Create Order Button + Modal -->
+                <livewire:purchase-orders.create-order :products="$products" :appSettings="$appSettings" />
+            </div>
         </div>
 
         <!-- Content Table -->
@@ -60,7 +64,8 @@
                                 $statusColors = [
                                     'pending' => 'text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400',
                                     'transit' => 'text-sky-600 bg-sky-50 dark:bg-sky-900/30 dark:text-sky-400',
-                                    'received' => 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30',
+                                    'received' =>
+                                        'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30',
                                 ];
                                 $statusLabels = [
                                     'pending' => 'Pending',
@@ -73,22 +78,24 @@
                                     <div class="flex items-center gap-3">
                                         <div
                                             class="w-10 h-10 bg-slate-100 dark:bg-slate-950 rounded-xl flex items-center justify-center p-1 overflow-hidden border border-slate-200 dark:border-slate-700">
-                                            @if(optional($order->product)->image_path)
+                                            @if (optional($order->product)->image_path)
                                                 <img src="{{ $order->product->image_path }}" alt=""
                                                     class="w-full h-full object-cover rounded-lg" />
                                             @else
-                                                <x-lucide-package class="w-5 h-5 text-slate-400 dark:text-slate-500" /></i>
+                                                <x-lucide-package
+                                                    class="w-5 h-5 text-slate-400 dark:text-slate-500" /></i>
                                             @endif
                                         </div>
                                         <div>
                                             <p class="text-sm font-bold text-slate-800 dark:text-slate-200">
                                                 {{ optional($order->product)->name }}
-                                                @if($order->variant)
+                                                @if ($order->variant)
                                                     <span
                                                         class="text-slate-500 dark:text-slate-400 font-medium">({{ $order->variant->name }})</span>
                                                 @endif
                                             </p>
-                                            <p class="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                                            <p
+                                                class="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
                                                 <x-lucide-hash class="w-3 h-3" /></i>
                                                 PI-{{ str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
                                             </p>
@@ -118,7 +125,7 @@
                                     <div
                                         class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 font-medium">
                                         <x-lucide-calendar class="w-4 h-4 text-slate-300 dark:text-slate-600" /></i>
-                                        @if($order->status === 'received' && $order->received_at)
+                                        @if ($order->status === 'received' && $order->received_at)
                                             {{ \Carbon\Carbon::parse($order->received_at)->format('n/j/Y') }}
                                         @elseif($order->estimated_arrival)
                                             {{ \Carbon\Carbon::parse($order->estimated_arrival)->format('n/j/Y') }}
@@ -129,7 +136,7 @@
                                 </td>
                                 <td class="px-6 py-5 text-right">
                                     <div class="flex items-center justify-end gap-2">
-                                        @if($order->status === 'pending')
+                                        @if ($order->status === 'pending')
                                             <form action="{{ route('purchase-orders.updateStatus', $order->id) }}"
                                                 method="POST">
                                                 @csrf
@@ -141,7 +148,7 @@
                                                 </button>
                                             </form>
                                         @endif
-                                        @if($order->status === 'transit')
+                                        @if ($order->status === 'transit')
                                             <form action="{{ route('purchase-orders.confirm-received', $order->id) }}"
                                                 method="POST">
                                                 @csrf
@@ -151,10 +158,12 @@
                                                 </button>
                                             </form>
                                         @endif
-                                        @if($order->status === 'received')
+                                        @if ($order->status === 'received')
                                             <div
                                                 class="text-xs font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1.5 justify-end">
-                                                <x-lucide-check-circle-2 class="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" /></i> Completed
+                                                <x-lucide-check-circle-2
+                                                    class="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" /></i>
+                                                Completed
                                             </div>
                                         @endif
                                     </div>

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "dc4e80fa9c54bd398f41b2cc3bb251e7",
+    "content-hash": "ffdd9089a05ea82b033b13704370e17d",
     "packages": [
         {
             "name": "blade-ui-kit/blade-icons",
@@ -2892,6 +2892,61 @@
                 "source": "https://github.com/nikic/PHP-Parser/tree/v5.7.0"
             },
             "time": "2025-12-06T11:56:16+00:00"
+        },
+        {
+            "name": "niklasravnsborg/laravel-pdf",
+            "version": "v4.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/niklasravnsborg/laravel-pdf.git",
+                "reference": "a5f5c22dd5e10d8f536102cec01c21282e18ebae"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/niklasravnsborg/laravel-pdf/zipball/a5f5c22dd5e10d8f536102cec01c21282e18ebae",
+                "reference": "a5f5c22dd5e10d8f536102cec01c21282e18ebae",
+                "shasum": ""
+            },
+            "require": {
+                "mpdf/mpdf": "^8.0",
+                "php": ">=7.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^3.7",
+                "phpunit/phpunit": "^7.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "niklasravnsborg\\LaravelPdf\\PdfServiceProvider"
+                    ],
+                    "aliases": {
+                        "PDF": "niklasravnsborg\\LaravelPdf\\Facades\\Pdf"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "niklasravnsborg\\LaravelPdf\\": "src/LaravelPdf"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Generate PDFs in Laravel with this mPDF wrapper.",
+            "keywords": [
+                "laravel",
+                "mpdf",
+                "pdf"
+            ],
+            "support": {
+                "issues": "https://github.com/niklasravnsborg/laravel-pdf/issues",
+                "source": "https://github.com/niklasravnsborg/laravel-pdf/tree/v4.1.0"
+            },
+            "abandoned": true,
+            "time": "2021-06-08T11:07:13+00:00"
         },
         {
             "name": "nunomaduro/termwind",
@@ -8966,5 +9021,5 @@
         "php": "^8.2"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.2.0"
+    "plugin-api-version": "2.6.0"
 }

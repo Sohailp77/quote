@@ -9,10 +9,20 @@ use App\Models\Product;
 
 class PurchaseOrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $query = PurchaseOrder::with(['product', 'variant']);
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->whereHas('product', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
         return view('purchaseorders.index', [
-            'orders' => PurchaseOrder::with(['product', 'variant'])->latest()->get(),
+            'orders' => $query->latest()->get(),
             'products' => Product::with('variants')->get(),
             'appSettings' => \App\Models\CompanySetting::getCompanyProfile(),
         ]);

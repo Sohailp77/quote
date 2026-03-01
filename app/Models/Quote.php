@@ -25,11 +25,19 @@ class Quote extends Model
         'notes',
         'discount_percentage',
         'discount_amount',
+        'delivery_date',
+        'delivery_time',
+        'delivery_partner',
+        'tracking_number',
+        'delivery_status',
+        'delivery_note',
     ];
 
     protected $casts = [
         'valid_until' => 'date',
         'tax_config_snapshot' => 'array',
+        'delivery_date' => 'date',
+        'delivery_time' => 'string', // Handled as string typically, or keep as date/time string
     ];
 
     public function user()

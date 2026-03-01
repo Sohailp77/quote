@@ -22,15 +22,18 @@
 
     <!-- Theme Provider Simulation -->
     @php
-        $settings = \App\Models\CompanySetting::whereIn('key', ['theme_mode', 'brand_color_primary', 'company_name'])->pluck('value', 'key')->toArray();
-        $themeMode = $settings['theme_mode'] ?? 'system';
+        $settings = \App\Models\CompanySetting::whereIn('key', ['brand_color_primary', 'company_name'])
+            ->pluck('value', 'key')
+            ->toArray();
         $brandColor = $settings['brand_color_primary'] ?? '#6366f1';
         $companyName = $settings['company_name'] ?? 'CatalogApp';
     @endphp
 
     <script>
         function hexToRgb(hex) {
-            let r = 0, g = 0, b = 0;
+            let r = 0,
+                g = 0,
+                b = 0;
             if (hex.length === 4) {
                 r = parseInt(hex[1] + hex[1], 16);
                 g = parseInt(hex[2] + hex[2], 16);
@@ -51,12 +54,14 @@
             return `${r} ${g} ${b}`;
         }
 
-        const themeMode = '{{ $themeMode }}';
         const primaryHex = '{{ $brandColor }}';
 
-        function applyTheme() {
+        function applyTheme(mode = null) {
             const root = document.documentElement;
-            if (themeMode === 'dark' || (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            const themeMode = mode || localStorage.getItem('theme') || 'system';
+
+            if (themeMode === 'dark' || (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)')
+                    .matches)) {
                 root.classList.add('dark');
             } else {
                 root.classList.remove('dark');
@@ -80,7 +85,8 @@
         }
 
         applyTheme();
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme());
+        window.addEventListener('theme-changed', (e) => applyTheme(e.detail));
     </script>
 </head>
 
@@ -97,14 +103,11 @@
                 {{ $slot }}
             </div>
         </main>
-        <x-global-success />
-        <x-global-error />
+        <x-global-notifications />
         <x-stock-warning-modal />
     </div>
     <!-- Initialize Lucide Icons -->
-    <script>
-
-    </script>
+    <script></script>
     @stack('scripts')
 </body>
 

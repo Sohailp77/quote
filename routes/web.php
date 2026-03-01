@@ -42,6 +42,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('categories', CategoryController::class);
     Route::resource('products', ProductController::class);
     Route::resource('product-variants', ProductVariantController::class)->only(['store', 'update', 'destroy']);
+    Route::resource('customers', \App\Http\Controllers\CustomerController::class);
 
     // ─ Quotes (scoped in controller) ────────────────────────────────────────
     Route::get('/quotes/create', \App\Livewire\Quotes\QuoteCart::class)->name('quotes.create');
@@ -50,6 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/quotes', [\App\Http\Controllers\QuoteController::class, 'store'])->name('quotes.store');
     Route::get('/quotes/{quote}/pdf', [\App\Http\Controllers\QuoteController::class, 'pdf'])->name('quotes.pdf');
     Route::patch('/quotes/{quote}/status', [\App\Http\Controllers\QuoteController::class, 'updateStatus'])->name('quotes.updateStatus');
+    Route::patch('/quotes/{quote}/delivery', [\App\Http\Controllers\QuoteController::class, 'updateDelivery'])->name('quotes.updateDelivery');
 
     // ─ Settings (boss only) ─────────────────────────────────────────────────
     Route::middleware('boss')->group(function () {

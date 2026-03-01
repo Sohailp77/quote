@@ -6,12 +6,13 @@
     <title>Quotation #{{ $quote->reference_id }}</title>
     <style>
         body {
-            font-family: 'DejaVu Sans', sans-serif;
+            font-family:sans-serif;
             color: #333333;
             font-size: 9pt;
-            line-height: 1.4;
+            line-height: 1.2;
             margin: 0;
             padding: 0;
+            padding-bottom: 50px; /* IMPORTANT */
             background: #ffffff;
         }
 
@@ -416,7 +417,16 @@
             if (empty($path))
                 return null;
             $cleanPath = ltrim($path, '/');
-            return str_starts_with($cleanPath, 'storage/') ? public_path($cleanPath) : public_path('storage/' . $cleanPath);
+            // Paths starting with 'storage/' are uploaded files symlinked into public/storage
+            if (str_starts_with($cleanPath, 'storage/')) {
+                return public_path($cleanPath);
+            }
+            // Paths starting with 'images/' are files stored directly under public/
+            if (str_starts_with($cleanPath, 'images/')) {
+                return public_path($cleanPath);
+            }
+            // Fallback: assume it lives under public/storage (e.g. 'products/foo.jpg')
+            return public_path('storage/' . $cleanPath);
         }
     @endphp
 
@@ -491,11 +501,11 @@
             </td>
             <td width="45%" valign="top">
                 <div align="center">
-                    <div class="invoice-details-title">Invoice Details</div>
+                    <div class="invoice-details-title">Quotation Details</div>
                 </div>
                 <table class="invoice-meta" width="100%">
                     <tr>
-                        <td class="meta-label">Invoice</td>
+                        <td class="meta-label">Quotation</td>
                         <td class="meta-value">: #{{ $quote->reference_id }}</td>
                     </tr>
                     <tr>
@@ -503,8 +513,12 @@
                         <td class="meta-value">: {{ $companyProfile['bank_account_number'] ?? 'N/A' }}</td>
                     </tr>
                     <tr>
-                        <td class="meta-label">Invoice Date</td>
+                        <td class="meta-label">Quotation Date</td>
                         <td class="meta-value">: {{ $quote->created_at->format('d/m/Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="meta-label">Quotation By</td>
+                        <td class="meta-value">: {{ $quote->user->name }}</td>
                     </tr>
                     @if($quote->valid_until)
                         <tr>
@@ -524,9 +538,9 @@
                 <tr>
                     <th class="th-desc" width="{{ $isItemLevel ? '35%' : '45%' }}">Item Description</th>
                     <th class="th-price" width="18%">Unit Price</th>
-                    <th class="th-qty" width="12%">Quantity</th>
+                    <th class="th-qty" width="13%">Quantity</th>
                     @if($isItemLevel)
-                        <th class="th-price" width="10%">Tax</th>
+                        <th class="th-price" width="15%">Tax</th>
                     @endif
                     <th class="th-total" width="{{ $isItemLevel ? '25%' : '25%' }}"
                         style="text-align: right; padding-right: 25px;">Total</th>
@@ -537,17 +551,17 @@
                     @php
                         $itemImgPath = $item->variant->image_path ?? $item->product->image_path ?? null;
                         $imgLocalPath = getLocalPath($itemImgPath);
+                        $defaultImgPath = public_path('images/default_product.png');
+                        $displayImgPath = ($imgLocalPath && file_exists($imgLocalPath)) ? $imgLocalPath : $defaultImgPath;
                         $lineTotal = $item->price * $item->quantity;
                     @endphp
                     <tr>
                         <td class="text-left">
                             <table cellpadding="0" cellspacing="0">
                                 <tr>
-                                    @if($imgLocalPath && file_exists($imgLocalPath))
-                                        <td width="55" valign="middle">
-                                            <img src="{{ $imgLocalPath }}" class="item-image">
-                                        </td>
-                                    @endif
+                                    <td width="55" valign="middle">
+                                        <img src="{{ $displayImgPath }}" class="item-image">
+                                    </td>
                                     <td valign="middle">
                                         <div class="item-name">{{ $item->product->name }}</div>
                                         @if($item->variant)
@@ -650,7 +664,7 @@
     </table>
 
     <!-- Footer Section -->
-    <table class="footer-section">
+    {{-- <table class="footer-section">
         <tr>
             <td width="60%" valign="bottom">
                 <div class="thank-you">Thank You For Your Business!</div>
@@ -675,8 +689,39 @@
                 </div>
             </td>
         </tr>
-    </table>
+    </table> --}}
+
+    <!-- Computer Generated Footer -->
+<div style="
+    position: fixed;
+    bottom: 10px;
+    left: 35px;
+    right: 35px;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 7.5pt;
+    color: #aaaaaa;
+    letter-spacing: 0.5px;
+">
+    &#128187; This is a computer generated Quotation and does not require a physical signature.
+</div>
 
 </body>
+
+{{-- <htmlpagefooter name="quoteFooter">
+    <div style="
+        border-top: 1px solid #e0e0e0;
+        padding-top: 8px;
+        text-align: center;
+        font-size: 7.5pt;
+        color: #aaaaaa;
+        letter-spacing: 0.5px;
+    ">
+        &#128187; This is a computer generated Quotation and does not require a physical signature.
+    </div>
+</htmlpagefooter>
+
+<sethtmlpagefooter name="quoteFooter" value="on" /> --}}
 
 </html>

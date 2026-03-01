@@ -62,6 +62,13 @@ class CreateOrder extends Component
 
     public function save()
     {
+        // Sanitize empty strings to null for nullable fields to pass validation
+        if ($this->product_variant_id === '') {
+            $this->product_variant_id = null;
+        }
+        if ($this->estimated_arrival === '') {
+            $this->estimated_arrival = null;
+        }
         if (!auth()->user() || !auth()->user()->isBoss()) {
             abort(403, 'Unauthorized Action.');
         }

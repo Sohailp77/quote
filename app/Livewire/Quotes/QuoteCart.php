@@ -19,8 +19,10 @@ class QuoteCart extends Component
     public $taxRates;
     public $taxSettings;
     public $currency;
+    public $customers;
 
     // Customer Details
+    public $customer_id = '';
     public $customer_name = '';
     public $customer_phone = '';
     public $customer_email = '';
@@ -85,11 +87,13 @@ class QuoteCart extends Component
         }
 
         $products = \App\Models\Product::with(['category', 'variants', 'taxRate'])->get();
+        $customers = \App\Models\Customer::orderBy('name')->get();
         $taxRates = \App\Models\TaxRate::where('is_active', true)->get();
         $taxSettings = \App\Models\CompanySetting::getTaxConfiguration();
         $currency = \App\Models\CompanySetting::getCurrencySymbol();
 
         $this->products = is_object($products) && method_exists($products, 'toArray') ? $products->toArray() : $products;
+        $this->customers = is_object($customers) && method_exists($customers, 'toArray') ? $customers->toArray() : $customers;
         $this->taxRates = is_object($taxRates) && method_exists($taxRates, 'toArray') ? $taxRates->toArray() : $taxRates;
         $this->taxSettings = is_object($taxSettings) && method_exists($taxSettings, 'toArray') ? $taxSettings->toArray() : $taxSettings;
         $this->currency = $currency ?? '₹';
@@ -117,6 +121,38 @@ class QuoteCart extends Component
     {
         unset($this->items[$index]);
         $this->items = array_values($this->items); // Re-index array
+    }
+
+    public function updatedCustomerId($value)
+    {
+        if ($value) {
+            $customer = collect($this->customers)->firstWhere('id', $value);
+            if ($customer) {
+                $customerArr = (array) $customer;
+                $this->customer_name = $customerArr['name'] ?? '';
+                $this->customer_phone = $customerArr['phone'] ?? '';
+                $this->customer_email = $customerArr['email'] ?? '';
+            }
+        } else {
+            // Optional: clear fields if unselected, or allow them to remain as free-text
+        }
+    }
+
+    public function updatedCustomerName($value)
+    {
+        // Case-insensitive search
+        $customer = collect($this->customers)->first(function($c) use ($value) {
+            return strtolower($c['name'] ?? '') === strtolower($value);
+        });
+        
+        if ($customer) {
+            $customerArr = (array) $customer;
+            $this->customer_id = $customerArr['id'];
+            $this->customer_phone = $customerArr['phone'] ?? '';
+            $this->customer_email = $customerArr['email'] ?? '';
+        } else {
+            $this->customer_id = '';
+        }
     }
 
     // When product_id changes for an item
@@ -244,6 +280,37 @@ class QuoteCart extends Component
             $taxable_amount = $this->taxableAmount;
             $tax_amount = $this->taxAmount;
             $total_amount = $this->totalAmount;
+
+            // Auto-Save / Update Customer to CRM
+            if ($this->customer_id) {
+                $customer = \App\Models\Customer::find($this->customer_id);
+                if ($customer) {
+                    $customer->update([
+                        'name' => $this->customer_name,
+                        'phone' => $this->customer_phone,
+                        'email' => $this->customer_email,
+                    ]);
+                }
+            } elseif (!empty($this->customer_name)) {
+                $customer = \App\Models\Customer::where('name', $this->customer_name)
+                    ->when($this->customer_email, function ($query) {
+                        return $query->where('email', $this->customer_email);
+                    })
+                    ->first();
+
+                if (!$customer) {
+                    \App\Models\Customer::create([
+                        'name' => $this->customer_name,
+                        'phone' => $this->customer_phone,
+                        'email' => $this->customer_email,
+                    ]);
+                } else {
+                    $customer->update([
+                        'phone' => $this->customer_phone ?: $customer->phone,
+                        'email' => $this->customer_email ?: $customer->email,
+                    ]);
+                }
+            }
 
             if ($this->quote && $this->quote->exists) {
                 // UPDATE Existing Quote
