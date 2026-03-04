@@ -27,6 +27,7 @@ Route::get('/', function () {
     ]);
 });
 
+
 // ── Authenticated routes ─────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -50,6 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/quotes', [\App\Http\Controllers\QuoteController::class, 'index'])->name('quotes.index');
     Route::post('/quotes', [\App\Http\Controllers\QuoteController::class, 'store'])->name('quotes.store');
     Route::get('/quotes/{quote}/pdf', [\App\Http\Controllers\QuoteController::class, 'pdf'])->name('quotes.pdf');
+    Route::post('/quotes/{quote}/send-email', [\App\Http\Controllers\QuoteController::class, 'sendEmail'])->name('quotes.sendEmail');
     Route::patch('/quotes/{quote}/status', [\App\Http\Controllers\QuoteController::class, 'updateStatus'])->name('quotes.updateStatus');
     Route::patch('/quotes/{quote}/delivery', [\App\Http\Controllers\QuoteController::class, 'updateDelivery'])->name('quotes.updateDelivery');
 

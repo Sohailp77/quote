@@ -18,6 +18,7 @@
 
 
     <!-- Scripts -->
+    @livewireStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <!-- Theme Provider Simulation -->
@@ -108,6 +109,7 @@
     </div>
     <!-- Initialize Lucide Icons -->
     <script></script>
+    @livewireScripts
     @stack('scripts')
 </body>
 

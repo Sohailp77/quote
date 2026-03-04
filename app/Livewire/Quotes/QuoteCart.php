@@ -26,6 +26,7 @@ class QuoteCart extends Component
     public $customer_name = '';
     public $customer_phone = '';
     public $customer_email = '';
+    public $customer_address = '';
     public $notes = '';
 
     // Cart Settings
@@ -42,6 +43,7 @@ class QuoteCart extends Component
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'nullable|string|max:20',
             'customer_email' => 'nullable|email|max:255',
+            'customer_address' => 'nullable|string',
             'notes' => 'nullable|string',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'tax_mode' => 'required|in:global,item_level',
@@ -67,6 +69,7 @@ class QuoteCart extends Component
             $this->customer_name = $quote->customer_name;
             $this->customer_phone = $quote->customer_phone;
             $this->customer_email = $quote->customer_email;
+            $this->customer_address = $quote->customer_address;
             $this->notes = $quote->notes;
             $this->tax_mode = $quote->tax_mode;
             $this->discount_percentage = $quote->discount_percentage;
@@ -123,36 +126,34 @@ class QuoteCart extends Component
         $this->items = array_values($this->items); // Re-index array
     }
 
-    public function updatedCustomerId($value)
+public function selectCustomer($id)
+{
+    $customer = collect($this->customers)->firstWhere('id', $id);
+    
+    if ($customer) {
+        $this->customer_id = $id;
+        $this->customer_name = $customer['name'];
+        $this->customer_phone = $customer['phone'];
+        $this->customer_email = $customer['email'];
+        $this->customer_address = $customer['address'];
+    }
+}
+
+    public function clearCustomer()
     {
-        if ($value) {
-            $customer = collect($this->customers)->firstWhere('id', $value);
-            if ($customer) {
-                $customerArr = (array) $customer;
-                $this->customer_name = $customerArr['name'] ?? '';
-                $this->customer_phone = $customerArr['phone'] ?? '';
-                $this->customer_email = $customerArr['email'] ?? '';
-            }
-        } else {
-            // Optional: clear fields if unselected, or allow them to remain as free-text
-        }
+        $this->customer_id = null;
+        $this->customer_name = '';
+        $this->customer_phone = '';
+        $this->customer_email = '';
+        $this->customer_address = '';
     }
 
     public function updatedCustomerName($value)
     {
-        // Case-insensitive search
-        $customer = collect($this->customers)->first(function($c) use ($value) {
-            return strtolower($c['name'] ?? '') === strtolower($value);
-        });
-        
-        if ($customer) {
-            $customerArr = (array) $customer;
-            $this->customer_id = $customerArr['id'];
-            $this->customer_phone = $customerArr['phone'] ?? '';
-            $this->customer_email = $customerArr['email'] ?? '';
-        } else {
-            $this->customer_id = '';
-        }
+        // Only clear the customer_id if the user starts typing a new name
+        // The detailed fields (phone, email, address) will remain as they are 
+        // until a new selection is made or the form is saved.
+        $this->customer_id = null;
     }
 
     // When product_id changes for an item
@@ -289,6 +290,7 @@ class QuoteCart extends Component
                         'name' => $this->customer_name,
                         'phone' => $this->customer_phone,
                         'email' => $this->customer_email,
+                        'address' => $this->customer_address,
                     ]);
                 }
             } elseif (!empty($this->customer_name)) {
@@ -303,11 +305,13 @@ class QuoteCart extends Component
                         'name' => $this->customer_name,
                         'phone' => $this->customer_phone,
                         'email' => $this->customer_email,
+                        'address' => $this->customer_address,
                     ]);
                 } else {
                     $customer->update([
                         'phone' => $this->customer_phone ?: $customer->phone,
                         'email' => $this->customer_email ?: $customer->email,
+                        'address' => $this->customer_address ?: $customer->address,
                     ]);
                 }
             }
@@ -318,6 +322,7 @@ class QuoteCart extends Component
                     'customer_name' => $this->customer_name,
                     'customer_phone' => $this->customer_phone,
                     'customer_email' => $this->customer_email,
+                    'customer_address' => $this->customer_address,
                     'subtotal' => $subtotal,
                     'discount_percentage' => $this->discount_percentage ?: 0,
                     'discount_amount' => $discount_amount,
@@ -340,6 +345,7 @@ class QuoteCart extends Component
                     'customer_name' => $this->customer_name,
                     'customer_phone' => $this->customer_phone,
                     'customer_email' => $this->customer_email,
+                    'customer_address' => $this->customer_address,
                     'subtotal' => $subtotal,
                     'discount_percentage' => $this->discount_percentage ?: 0,
                     'discount_amount' => $discount_amount,

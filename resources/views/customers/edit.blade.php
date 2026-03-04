@@ -66,6 +66,16 @@
                         @enderror
                     </div>
                 </div>
+ 
+                <div>
+                     <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Address</label>
+                     <textarea name="address" rows="3"
+                         class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition-all resize-none dark:text-white"
+                         placeholder="123 Main St, Springfield...">{{ old('address', $customer->address ?? '') }}</textarea>
+                     @error('address')
+                         <span class="text-red-500 text-xs mt-1">{{ $message }}</span>
+                     @enderror
+                </div>
 
                 <div>
                     <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Internal

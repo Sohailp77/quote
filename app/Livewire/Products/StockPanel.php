@@ -11,10 +11,13 @@ use Livewire\Component;
 
 class StockPanel extends Component
 {
+    use \Livewire\WithPagination;
+
     public Product $product;
     public $appSettings;
     public $isBoss;
 
+    // Form fields
     public $direction = 'add';
     public $transactionType = 'adjustment';
     public $product_variant_id = '';
@@ -23,6 +26,11 @@ class StockPanel extends Component
     public $quantity = '';
     public $reason = '';
 
+    // Filters
+    public $filterType = '';
+    public $filterUserId = '';
+    public $search = '';
+
     protected function rules()
     {
         return [
@@ -30,7 +38,7 @@ class StockPanel extends Component
             'direction' => 'required|in:add,deduct',
             'reason' => 'required|string|max:255',
             'product_variant_id' => 'nullable|exists:product_variants,id',
-            'transactionType' => 'required|in:adjustment,sale,loss,purchase',
+            'transactionType' => 'required|in:adjustment,sale,loss,purchase,reversion,initial_stock',
             'unit_cost' => 'nullable|numeric|min:0',
             'amount' => 'nullable|numeric|min:0',
         ];
@@ -45,12 +53,16 @@ class StockPanel extends Component
 
     public function updatedTransactionType($value)
     {
-        if ($value === 'purchase') {
+        if ($value === 'purchase' || $value === 'initial_stock' || $value === 'reversion') {
             $this->direction = 'add';
         } elseif (in_array($value, ['sale', 'loss'])) {
             $this->direction = 'deduct';
         }
     }
+
+    public function updatedFilterType() { $this->resetPage(); }
+    public function updatedFilterUserId() { $this->resetPage(); }
+    public function updatedSearch() { $this->resetPage(); }
 
     public function save()
     {
@@ -93,7 +105,7 @@ class StockPanel extends Component
         $this->direction = 'add';
         $this->transactionType = 'adjustment';
 
-        $this->product->load(['variants', 'stockAdjustments.user', 'stockAdjustments.variant']);
+        $this->product->refresh();
 
         session()->flash('success', 'Stock updated and financial impact recorded.');
     }
@@ -128,12 +140,33 @@ class StockPanel extends Component
                 ->update(['reverted_at' => now()]);
         });
 
-        $this->product->load(['variants', 'stockAdjustments.user', 'stockAdjustments.variant']);
+        $this->product->refresh();
         session()->flash('success', 'Adjustment reverted successfully.');
     }
 
     public function render()
     {
-        return view('livewire.products.stock-panel');
+        $query = $this->product->stockAdjustments()
+            ->with(['user', 'variant'])
+            ->latest();
+
+        if (!empty($this->filterType)) {
+            $query->where('type', $this->filterType);
+        }
+
+        if (!empty($this->filterUserId)) {
+            $query->where('user_id', $this->filterUserId);
+        }
+
+        if (!empty($this->search)) {
+            $query->where('reason', 'like', "%{$this->search}%");
+        }
+
+        $users = \App\Models\User::has('stockAdjustments')->get();
+
+        return view('livewire.products.stock-panel', [
+            'adjustments' => $query->paginate(10),
+            'users' => $users
+        ]);
     }
 }

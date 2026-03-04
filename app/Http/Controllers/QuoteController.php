@@ -22,14 +22,18 @@ class QuoteController extends Controller
             $query->where('user_id', auth()->id());
         }
 
-        // Search
+        // Search not case sensitive
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
-                $q->where('reference_id', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%")
-                  ->orWhere('customer_email', 'like', "%{$search}%")
-                  ->orWhere('customer_phone', 'like', "%{$search}%");
+                $q->where('reference_id', 'ilike', "%{$search}%")
+                  ->orWhere('customer_name', 'ilike', "%{$search}%")
+                  ->orWhere('customer_email', 'ilike', "%{$search}%")
+                  ->orWhere('customer_phone', 'ilike', "%{$search}%")
+                  ->orWhere('customer_address', 'ilike', "%{$search}%")
+                  ->orWhereHas('user', function ($q) use ($search) {
+                      $q->where('name', 'ilike', "%{$search}%");
+                  });
             });
         }
 
@@ -43,12 +47,29 @@ class QuoteController extends Controller
             $query->where('delivery_status', $request->input('delivery_status'));
         }
 
-        // Custom date range (based on created_at)
+        // // Custom date range (based on created_at)
+        // if ($request->filled('date_from')) {
+        //     $query->whereDate('created_at', '>=', $request->input('date_from'));
+        // }
+        // if ($request->filled('date_to')) {
+        //     $query->whereDate('created_at', '<=', $request->input('date_to'));
+        // }
+
+
+        $dateType = $request->input('date_type', 'created');
+
+        $dateColumn = match ($dateType) {
+            'delivery' => 'delivery_date',
+            'accepted' => 'accepted_at', // must exist
+            default    => 'created_at',
+        };
+
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->input('date_from'));
+            $query->whereDate($dateColumn, '>=', $request->input('date_from'));
         }
+
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->input('date_to'));
+            $query->whereDate($dateColumn, '<=', $request->input('date_to'));
         }
 
         // Overdue filter – accepted + delivery date passed + not delivered
@@ -62,10 +83,21 @@ class QuoteController extends Controller
                   });
         }
 
-        $filters = $request->only(['search', 'status', 'delivery_status', 'date_from', 'date_to', 'overdue']);
-        $quotes  = $query->latest()->paginate(15)->withQueryString();
+        $filters = $request->only(['search', 'status', 'delivery_status', 'date_from', 'date_to', 'date_type', 'overdue']);
 
-        return view('quotes.index', compact('quotes', 'filters'));
+        // Calculate Summary Stats based on current filters (before pagination)
+        $stats = [
+            'total_count'    => (clone $query)->count(),
+            //total revenue = sum of all accepted quotes
+            'total_value'    => (clone $query)->where('status', 'accepted')->sum('total_amount'),
+            'accepted_count' => (clone $query)->where('status', 'accepted')->count(),
+            'pending_count'  => (clone $query)->whereIn('status', ['draft', 'sent'])->count(),
+            'accepted_value' => (clone $query)->where('status', 'accepted')->sum('total_amount'),
+        ];
+
+        $quotes = $query->latest()->paginate(15)->withQueryString();
+
+        return view('quotes.index', compact('quotes', 'filters', 'stats'));
     }
     public function create()
     {
@@ -93,6 +125,7 @@ class QuoteController extends Controller
         return view('quotes.create', compact('quote', 'products', 'taxRates', 'taxSettings', 'currency'));
     }
 
+
     // Store the complete quote
     public function store(Request $request)
     {
@@ -100,6 +133,7 @@ class QuoteController extends Controller
             'customer_name' => 'required|string|max:255',
             'customer_email' => 'nullable|email',
             'customer_phone' => 'nullable|string',
+            'customer_address' => 'nullable|string',
             'tax_mode' => 'required|in:global,item_level',
             'gst_rate' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
@@ -120,6 +154,7 @@ class QuoteController extends Controller
             'customer_name' => $validated['customer_name'],
             'customer_email' => $validated['customer_email'] ?? null,
             'customer_phone' => $validated['customer_phone'] ?? null,
+            'customer_address' => $validated['customer_address'] ?? null,
             'tax_mode' => $validated['tax_mode'],
             'tax_config_snapshot' => $taxSettings,
             'notes' => $validated['notes'] ?? null,
@@ -185,7 +220,7 @@ class QuoteController extends Controller
 
         $allowedTransitions = $user->isBoss()
             ? ['draft', 'sent', 'accepted', 'rejected', 'expired']
-            : ['sent']; // employees can only mark their draft as sent
+            : ['sent', 'rejected']; // employees can mark their draft as sent or reject their own quote
 
         $validated = $request->validate([
             'status' => ['required', 'in:' . implode(',', $allowedTransitions)],
@@ -198,9 +233,7 @@ class QuoteController extends Controller
         $oldStatus = $quote->status;
         $newStatus = $validated['status'];
 
-        if ($oldStatus === $newStatus) {
-            return back()->with('success', 'Quote status is already ' . $newStatus);
-        }
+        // Removed early return to allow updating delivery details even if status remains 'accepted'
 
         return DB::transaction(function () use ($request, $quote, $oldStatus, $newStatus, $user, $validated) {
             // Stock Warning Logic: Check if we have enough stock for all items
@@ -310,8 +343,8 @@ class QuoteController extends Controller
         });
     }
 
-    // Generate PDF
-    public function pdf(Quote $quote)
+    // Generate PDF Binary
+    private function generatePdfBinary(Quote $quote)
     {
         $quote->load(['items.product.category', 'items.variant']);
         $companyProfile = \App\Models\CompanySetting::where('group', 'company')->pluck('value', 'key')->all();
@@ -337,12 +370,39 @@ class QuoteController extends Controller
         ]);
         $mpdf->WriteHTML($html);
 
-        $pdfContent = $mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
+        return $mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
+    }
+
+    // View/Download PDF
+    public function pdf(Quote $quote)
+    {
+        $pdfContent = $this->generatePdfBinary($quote);
 
         return response($pdfContent, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="quote_' . $quote->reference_id . '.pdf"'
         ]);
+    }
+
+    // Send Quote via Email (True Attachment)
+    public function sendEmail(Request $request, Quote $quote)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'message' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            $pdfBinary = $this->generatePdfBinary($quote);
+            
+            \Illuminate\Support\Facades\Mail::to($request->email)
+                ->send(new \App\Mail\QuoteMail($quote, $pdfBinary, $request->message));
+
+            return back()->with('success', 'Quote sent successfully with PDF attachment.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to send quote email: " . $e->getMessage());
+            return back()->with('error', 'Failed to send email. Please check your mail configuration.');
+        }
     }
 
     /**

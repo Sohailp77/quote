@@ -15,9 +15,10 @@ class CustomerController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('company', 'like', "%{$search}%");
+            $query->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('email', 'ilike', "%{$search}%")
+                  ->orWhere('company', 'ilike', "%{$search}%")
+                  ->orWhere('address', 'ilike', "%{$search}%");
         }
 
         $customers = $query->latest()->paginate(15)->withQueryString();
@@ -37,6 +38,7 @@ class CustomerController extends Controller
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',
             'company' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
 
@@ -66,6 +68,7 @@ class CustomerController extends Controller
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:20',
             'company' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
 

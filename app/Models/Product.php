@@ -61,16 +61,14 @@ class Product extends Model
         $this->increment('stock_quantity', $change);
         $this->refresh();
 
-        $mappedType = in_array($type, ['quote', 'return']) ? $type : 'manual';
-
         return StockAdjustment::create([
             'product_id' => $this->id,
             'user_id' => $userId,
             'quantity_change' => $change,
             'unit_cost' => $unitCost,
             'stock_after' => $this->stock_quantity,
-            'type' => $mappedType,
-            'reason' => $reason . ($type !== $mappedType ? " (Original Type: $type)" : ''),
+            'type' => $type,
+            'reason' => $reason,
             'quote_id' => $quoteId,
         ]);
     }

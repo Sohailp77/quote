@@ -9,9 +9,9 @@
             class="absolute bottom-[-5%] right-[-5%] w-[30%] h-[30%] bg-emerald-200/20 rounded-full blur-[120px] pointer-events-none">
         </div>
 
-        <div class="relative z-10">
+        <div class="relative z-10" x-data="{ showCustomRange: {{ $timeframe === 'custom' ? 'true' : 'false' }} }">
             <!-- Header -->
-            <div class="flex items-center justify-between mb-8 gap-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
                 <div class="flex items-center gap-3">
                     <div
                         class="w-11 h-11 bg-gradient-to-br from-brand-600 to-brand-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
@@ -29,65 +29,92 @@
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
 
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                     <!-- Timeframe Filter Toggle -->
-                    <div class="hidden md:flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full">
-                        <a href="{{ route('dashboard', ['timeframe' => 'weekly']) }}"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-full transition-colors {{ $timeframe === 'weekly' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200' }}">This
-                            Week</a>
-                        <a href="{{ route('dashboard', ['timeframe' => 'monthly']) }}"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-full transition-colors {{ $timeframe === 'monthly' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200' }}">This
-                            Month</a>
-                        <a href="{{ route('dashboard', ['timeframe' => 'yearly']) }}"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-full transition-colors {{ $timeframe === 'yearly' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200' }}">This
-                            Year</a>
-                        <a href="{{ route('dashboard', ['timeframe' => 'all']) }}"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-full transition-colors {{ $timeframe === 'all' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200' }}">All
-                            Time</a>
+                    <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full w-full sm:w-auto overflow-x-auto no-scrollbar">
+                        @foreach(['weekly' => 'Week', 'monthly' => 'Month', 'yearly' => 'Year', 'all' => 'All'] as $key => $label)
+                            <a href="{{ route('dashboard', ['timeframe' => $key]) }}"
+                                class="px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-colors {{ $timeframe === $key ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200' }}">
+                                {{ $label }}
+                            </a>
+                        @endforeach
+                        <button @click="showCustomRange = !showCustomRange"
+                            class="px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-colors {{ $timeframe === 'custom' ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200' }}">
+                            Custom
+                        </button>
                     </div>
 
-                    @if ($userRole === 'boss')
-                        <a href="{{ route('employees.index') }}"
-                            class="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-                            <x-lucide-users class="w-4 h-4" /> Team
+                    <div class="flex items-center gap-2">
+                        @if ($userRole === 'boss')
+                            <a href="{{ route('employees.index') }}"
+                                class="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                <x-lucide-users class="w-4 h-4" /> Team
+                            </a>
+                        @endif
+                        <a href="{{ route('quotes.create') }}"
+                            class="flex items-center gap-2 bg-slate-900 dark:bg-brand-500 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow hover:bg-slate-700 dark:hover:bg-brand-600 transition">
+                            <x-lucide-plus class="w-4 h-4" /> New
                         </a>
-                    @endif
-                    <a href="{{ route('quotes.create') }}"
-                        class="flex items-center gap-2 bg-slate-900 dark:bg-brand-500 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow hover:bg-slate-700 dark:hover:bg-brand-600 transition">
-                        <x-lucide-plus class="w-4 h-4" /> New Quote
-                    </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Range Picker -->
+            <div x-show="showCustomRange" x-collapse style="display: none;">
+                <div class="mb-8 p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] shadow-sm">
+                    <form action="{{ route('dashboard') }}" method="GET" class="flex flex-wrap items-end gap-4">
+                        <input type="hidden" name="timeframe" value="custom">
+                        <div class="flex-1 min-w-[150px]">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Date From</label>
+                            <input type="date" name="start_date" value="{{ $quoteStats['start_date'] ?? '' }}" 
+                                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                        </div>
+                        <div class="flex-1 min-w-[150px]">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Date To</label>
+                            <input type="date" name="end_date" value="{{ $quoteStats['end_date'] ?? '' }}"
+                                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                        </div>
+                        <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition">Apply Range</button>
+                    </form>
                 </div>
             </div>
 
             @php
                 $currency = \App\Models\CompanySetting::getCurrencySymbol() ?? '₹';
+                $timeframeLabel = match($timeframe) {
+                    'weekly' => 'this week',
+                    'monthly' => 'this month',
+                    'yearly' => 'this year',
+                    'custom' => 'selected period',
+                    'all' => 'all time',
+                    default => 'this month'
+                };
             @endphp
 
             <!-- KPI Cards -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <x-dashboard.kpi-card :label="$userRole === 'boss' ? 'Total Revenue (' . ucfirst($timeframe) . ')' : 'My Revenue (' . ucfirst($timeframe) . ')'" :value="$currency . number_format($quoteStats['filtered_revenue'] ?? 0, 2)" :sub="$timeframe === 'all' ? 'All time' : 'Filtered period'" icon="coins" />
+                <x-dashboard.kpi-card :label="$userRole === 'boss' ? 'Revenue (' . ucfirst($timeframe) . ')' : 'My Revenue (' . ucfirst($timeframe) . ')'" 
+                    :value="$currency . number_format($quoteStats['filtered_revenue'] ?? 0, 2)" 
+                    :sub="$timeframe === 'all' ? 'Liftime earnings' : 'For ' . $timeframeLabel" icon="coins" />
 
                 @php
                     $growth = $quoteStats['growth'] ?? null;
                     $growthPositive = $growth !== null && $growth >= 0;
-                    $subTextThisMonth =
-                        $userRole === 'boss'
+                    $subTextGrowth = $userRole === 'boss'
                             ? ($growth !== null
                                 ? ($growthPositive ? '+' : '') . $growth . '% vs last month'
-                                : 'First month')
-                            : 'My earnings';
+                                : 'vs. previous')
+                            : 'Lifetime total';
                 @endphp
-                <x-dashboard.kpi-card label="Lifetime Revenue" :value="$currency . number_format($quoteStats['total_revenue'] ?? 0, 2)" :sub="$subTextThisMonth" :subPositive="$userRole === 'boss' ? ($growth !== null ? $growthPositive : null) : null"
+                <x-dashboard.kpi-card label="Lifetime Revenue" :value="$currency . number_format($quoteStats['total_revenue'] ?? 0, 2)" 
+                    :sub="$subTextGrowth" :subPositive="$userRole === 'boss' ? ($growth !== null ? $growthPositive : null) : null"
                     icon="trending-up" />
 
-                <x-dashboard.kpi-card :label="$userRole === 'boss' ? 'Conversion Rate' : 'My Conversion'" :value="($quoteStats['conversion_rate'] ?? 0) . '%'" :sub="($quoteStats['accepted_count'] ?? 0) .
-                    ' of ' .
-                    ($quoteStats['total_quotes'] ?? 0) .
-                    ' accepted'" :subPositive="($quoteStats['conversion_rate'] ?? 0) >= 50"
+                <x-dashboard.kpi-card :label="$userRole === 'boss' ? 'Conversion Rate' : 'My Conversion'" :value="($quoteStats['conversion_rate'] ?? 0) . '%'" :sub="($quoteStats['accepted_count'] ?? 0) . ' accepted quotes'" :subPositive="($quoteStats['conversion_rate'] ?? 0) >= 50"
                     icon="target" />
 
-                <x-dashboard.kpi-card :label="$userRole === 'boss' ? 'Avg Deal Size' : 'My Quotes'" :value="$userRole === 'boss' ? $currency . number_format($quoteStats['avg_deal_size'] ?? 0, 2) : ($quoteStats['total_quotes'] ?? 0)" :sub="$userRole === 'boss' ? ($quoteStats['total_quotes'] ?? 0) . ' quotes total' : ($quoteStats['sent_count'] ?? 0) . ' pending'" :icon="$userRole === 'boss' ? 'bar-chart-3' : 'file-text'" />
+                <x-dashboard.kpi-card :label="$userRole === 'boss' ? 'Avg Deal Size' : 'Quotes Generated'" :value="$userRole === 'boss' ? $currency . number_format($quoteStats['avg_deal_size'] ?? 0, 2) : ($quoteStats['total_quotes'] ?? 0)" :sub="$userRole === 'boss' ? 'During ' . $timeframeLabel : 'For ' . $timeframeLabel" :icon="$userRole === 'boss' ? 'bar-chart-3' : 'file-text'" />
             </div>
 
             <!-- Main Grid -->
@@ -102,21 +129,21 @@
                             <div>
                                 <h2 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <x-lucide-trending-up class="w-4 h-4 text-brand-500 dark:text-brand-400" />
-                                    {{ $userRole === 'boss' ? 'Revenue' : 'My Revenue' }} — Last 7 Days
+                                    {{ $userRole === 'boss' ? 'Revenue Trend' : 'My Revenue Trend' }}
                                 </h2>
                                 <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                                    {{ $userRole === 'boss' ? 'Daily totals from all quotes' : 'Your daily quote totals' }}
+                                    {{ $userRole === 'boss' ? 'Revenue breakdown' : 'Your earnings breakdown' }} for {{ $timeframeLabel }}
                                 </p>
                             </div>
                             <div class="text-right">
                                 <div class="text-xl font-black text-slate-900 dark:text-white">
                                     {{ $currency }}{{ number_format(array_sum($quoteStats['daily_revenue'] ?? []), 2) }}
                                 </div>
-                                <p class="text-xs text-slate-400 dark:text-slate-500">this week</p>
+                                <p class="text-xs text-slate-400 dark:text-slate-500">{{ $timeframeLabel }}</p>
                             </div>
                         </div>
                         <div>
-                            <x-dashboard.revenue-chart :dailyBars="$quoteStats['daily_revenue'] ?? array_fill(0, 7, 0)" :currency="$currency" />
+                            <x-dashboard.revenue-chart :dailyBars="$quoteStats['daily_revenue'] ?? []" :labels="$quoteStats['chart_labels'] ?? []" :currency="$currency" />
                         </div>
                     </div>
 
@@ -126,7 +153,7 @@
                         <div class="flex justify-between items-center mb-5">
                             <h3 class="text-sm font-bold text-slate-900 dark:text-white">
                                 {{ $userRole === 'boss' ? 'Recent Quotes' : 'My Recent Quotes' }}</h3>
-                            <span class="text-xs text-slate-400 dark:text-slate-500">{{ ucfirst($timeframe) }}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">{{ $timeframeLabel }}</span>
                         </div>
                         <x-dashboard.quote-list :quotes="$quoteStats['recent_quotes']" :currency="$currency" :isBoss="$userRole === 'boss'" />
                         <!-- Pagination Links -->
@@ -145,8 +172,8 @@
                             <h3 class="text-sm font-bold text-slate-900 dark:text-white">
                                 {{ $userRole === 'boss' ? 'Quote Breakdown' : 'My Stats' }}</h3>
                             <span
-                                class="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">All
-                                Time</span>
+                                class="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                                {{ $timeframeLabel }}</span>
                         </div>
                         <x-dashboard.status-ring :accepted="$quoteStats['accepted_count'] ?? 0" :sent="$quoteStats['sent_count'] ?? 0" :draft="$quoteStats['draft_count'] ?? 0"
                             :rejected="$quoteStats['rejected_count'] ?? 0" :total="$quoteStats['total_quotes'] ?? 0" />
@@ -155,7 +182,7 @@
                             <div class="bg-slate-50/50 dark:bg-slate-800/50 rounded-xl p-3">
                                 <p class="text-base font-black text-slate-900 dark:text-white">
                                     {{ $quoteStats['total_quotes'] ?? 0 }}</p>
-                                <p class="text-[10px] text-slate-400 dark:text-slate-500">All quotes</p>
+                                <p class="text-[10px] text-slate-400 dark:text-slate-500">Period quotes</p>
                             </div>
                             <div class="bg-emerald-50/20 dark:bg-emerald-900/20 rounded-xl p-3">
                                 <p class="text-base font-black text-emerald-700 dark:text-emerald-400">
@@ -177,15 +204,13 @@
                             class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/50 dark:border-slate-800 rounded-[32px] p-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <x-lucide-award class="w-4 h-4 text-brand-500 dark:text-brand-400" /> Team
-                                    Performance
+                                    <x-lucide-award class="w-4 h-4 text-brand-500 dark:text-brand-400" /> Team Performance
                                 </h3>
-                                <a href="{{ route('employees.index') }}"
-                                    class="text-xs text-slate-400 dark:text-slate-500 hover:text-brand-500 dark:hover:text-brand-400 transition">Manage</a>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ $timeframeLabel }}</span>
                             </div>
                             @if (count($employeePerformance ?? []) > 0)
                                 <div class="space-y-3">
-                                    @php $maxRev = max(1, $employeePerformance[0]->quotes_sum_total_amount ?? 1); @endphp
+                                    @php $maxRev = max(1, $employeePerformance->max('quotes_sum_total_amount') ?? 1); @endphp
                                     @foreach ($employeePerformance as $i => $emp)
                                         @php $pct = max(8, (($emp->quotes_sum_total_amount ?? 0) / $maxRev) * 100); @endphp
                                         <div>
@@ -214,14 +239,17 @@
                             @else
                                 <div class="text-center py-6 text-slate-300 dark:text-slate-600 text-xs">
                                     <x-lucide-users class="w-8 h-8 mx-auto mb-2" />
-                                    No employees yet.
+                                    No performance data for this period.
                                 </div>
                             @endif
                         </div>
                     @else
                         <div
                             class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/50 dark:border-slate-800 rounded-[32px] p-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300">
-                            <h3 class="text-sm font-bold text-slate-900 dark:text-white mb-4">My Top Products</h3>
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-white">My Top Products</h3>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ $timeframeLabel }}</span>
+                            </div>
                             <div class="space-y-3">
                                 @if (count($quoteStats['top_products'] ?? []) > 0)
                                     @php $maxCount = $quoteStats['top_products'][0]->quote_count ?? 1; @endphp
@@ -246,13 +274,13 @@
                                         </div>
                                     @endforeach
                                 @else
-                                    <p class="text-xs text-slate-400">No product stats available.</p>
+                                    <p class="text-xs text-slate-400">No product stats for this period.</p>
                                 @endif
                             </div>
                         </div>
                     @endif
 
-                    @if ($userRole === 'boss' && count($lowStockProducts ?? []) > 0)
+                    @if ($userRole === 'boss' && count($lowStockAlerts ?? []) > 0)
                         <div
                             class="bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/50 rounded-[32px] p-7 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
                             <h3
@@ -260,7 +288,7 @@
                                 <x-lucide-alert-triangle class="w-4 h-4" /> Low Stock Alerts
                             </h3>
                             <div class="space-y-2">
-                                @foreach (collect($lowStockProducts)->take(6) as $p)
+                                @foreach (collect($lowStockAlerts)->take(6) as $p)
                                     <div class="flex items-center justify-between">
                                         <p
                                             class="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[150px]">

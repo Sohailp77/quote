@@ -13,7 +13,10 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'CatalogApp'),
+
+    'provider_name' => env('PROVIDER_NAME', 'CatalogApp Pro'),
+    'provider_short_name' => env('PROVIDER_SHORT_NAME', 'CA'),
 
     /*
     |--------------------------------------------------------------------------

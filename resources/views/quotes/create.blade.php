@@ -37,7 +37,7 @@
     <form wire:submit="save" class="space-y-6 relative">
         <!-- 1. Customer Details -->
         <div
-            class="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            class="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-slate-200 dark:border-slate-800">
             <div
                 class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                 <div class="flex items-center gap-4">
@@ -59,26 +59,70 @@
                             </option>
                         @endforeach
                     </select>
+
+                    <button type="button" wire:click="clearCustomer"
+                        class="ml-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-bold transition-colors">
+                        Clear
+                    </button>
                 </div>
             </div>
 
             <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                    <label
-                        class="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 block">Full
-                        Name</label>
-                    <div class="relative">
-                        <x-lucide-user class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <input type="text" wire:model.live.debounce.300ms="customer_name" required
-                            list="customer-list" autocomplete="off"
-                            class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl pl-12 pr-5 py-3.5 font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 text-sm"
-                            placeholder="e.g. Acme Corp">
-                        <datalist id="customer-list">
-                            @foreach ($customers as $c)
-                                <option value="{{ $c['name'] }}">
-                            @endforeach
-                        </datalist>
-                    </div>
+<div x-data="{ 
+    open: false, 
+    search: $wire.entangle('customer_name', true), // This stays for the final value
+    allCustomers: @js($customers),
+    get filtered() {
+        if (!this.search || this.search.length < 1) return [];
+        const s = this.search.toLowerCase();
+        // Only show suggestions if the name isn't an EXACT match already 
+        // (prevents the list staying open after selection)
+        return this.allCustomers.filter(c => 
+            c.name.toLowerCase().includes(s)
+        ).slice(0, 5);
+    },
+    select(c) {
+        this.search = c.name; // Updates the input
+        $wire.customer_id = c.id; // Sets the ID
+        $wire.call('selectCustomer', c.id); // Custom method to fill phone/email
+        this.open = false;
+    }
+}" class="relative" wire:ignore>
+
+        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 block">Full Name</label>
+        
+        <div class="relative">
+            <x-lucide-user class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input type="text" 
+                x-model="search" 
+                @focus="open = true" 
+                @input="open = true; $wire.customer_id = null;"
+                @keydown.escape="open = false"
+                required
+                autocomplete="off"
+                class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl pl-12 pr-5 py-3.5 font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 text-sm"
+                placeholder="Search customer...">
+            
+            <div x-show="open && filtered.length > 0" 
+                 x-cloak
+                 x-transition
+                 class="absolute z-[100] left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                
+                <template x-for="c in filtered" :key="c.id">
+                    <button type="button" 
+                            @click="select(c)"
+                            class="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between group transition-colors border-b border-slate-100 dark:border-slate-800 last:border-none">
+                        <span class="flex flex-col">
+                            <span x-text="c.name"></span>
+                            <template x-if="c.company">
+                                <span class="text-[10px] text-slate-400" x-text="c.company"></span>
+                            </template>
+                        </span>
+                        <x-lucide-plus class="w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                    </button>
+                </template>
+            </div>
+        </div>
                     @error('customer_name')
                         <p class="text-red-500 text-xs mt-1 font-bold">{{ $message }}</p>
                     @enderror
@@ -112,11 +156,25 @@
                     @enderror
                 </div>
             </div>
+
+            <!-- Address Row -->
+            <div class="px-6 pb-6">
+                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 block">Customer Address</label>
+                <div class="relative">
+                    <x-lucide-map-pin class="absolute left-4 top-4 h-4 w-4 text-slate-400" />
+                    <textarea wire:model.blur="customer_address" rows="2"
+                        class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl pl-12 pr-5 py-3 font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 text-sm resize-none"
+                        placeholder="123 Main St, City, State, ZIP"></textarea>
+                </div>
+                @error('customer_address')
+                    <p class="text-red-500 text-xs mt-1 font-bold">{{ $message }}</p>
+                @enderror
+            </div>
         </div>
 
         <!-- 2. Items & Pricing -->
         <div
-            class="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            class="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-slate-200 dark:border-slate-800">
             <div
                 class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                 <div class="flex items-center gap-4">

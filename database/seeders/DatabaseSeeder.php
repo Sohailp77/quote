@@ -25,8 +25,8 @@ class DatabaseSeeder extends Seeder
         );
 
         // 2. Load Demo Data (4-5 months history for show)
-        $this->call([
-            DemoDataSeeder::class,
-        ]);
+        // $this->call([
+        //     DemoDataSeeder::class,
+        // ]);
     }
 }

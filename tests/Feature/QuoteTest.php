@@ -216,4 +216,78 @@ class QuoteTest extends TestCase
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'application/pdf');
     }
+    public function test_employee_can_reject_their_own_quote(): void
+    {
+        $quote = Quote::create([
+            'user_id' => $this->employee->id,
+            'customer_name' => 'Employee Customer',
+            'tax_mode' => 'global',
+            'status' => 'sent',
+            'total_amount' => 100,
+        ]);
+
+        $response = $this->actingAs($this->employee)->patch("/quotes/{$quote->id}/status", [
+            'status' => 'rejected',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('rejected', $quote->fresh()->status);
+    }
+
+    public function test_employee_cannot_reject_others_quote(): void
+    {
+        $otherEmployee = User::factory()->create(['role' => 'employee']);
+        $quote = Quote::create([
+            'user_id' => $otherEmployee->id,
+            'customer_name' => 'Other Customer',
+            'tax_mode' => 'global',
+            'status' => 'sent',
+            'total_amount' => 100,
+        ]);
+
+        $response = $this->actingAs($this->employee)->patch("/quotes/{$quote->id}/status", [
+            'status' => 'rejected',
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_boss_can_reject_accepted_quote(): void
+    {
+        $quote = Quote::create([
+            'user_id' => $this->employee->id,
+            'customer_name' => 'John Doe',
+            'tax_mode' => 'global',
+            'status' => 'accepted',
+            'total_amount' => 100,
+        ]);
+
+        $response = $this->actingAs($this->boss)->patch("/quotes/{$quote->id}/status", [
+            'status' => 'rejected',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('rejected', $quote->fresh()->status);
+    }
+
+    public function test_boss_can_update_logistics_even_if_status_is_already_accepted(): void
+    {
+        $quote = Quote::create([
+            'user_id' => $this->employee->id,
+            'customer_name' => 'John Doe',
+            'tax_mode' => 'global',
+            'status' => 'accepted',
+            'total_amount' => 100,
+        ]);
+
+        $response = $this->actingAs($this->boss)->patch("/quotes/{$quote->id}/status", [
+            'status' => 'accepted',
+            'delivery_partner' => 'BlueDart',
+            'tracking_number' => 'BD123',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('BlueDart', $quote->fresh()->delivery_partner);
+        $this->assertEquals('BD123', $quote->fresh()->tracking_number);
+    }
 }

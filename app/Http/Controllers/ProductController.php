@@ -17,9 +17,9 @@ class ProductController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+            $query->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('sku', 'ilike', "%{$search}%")
+                  ->orWhere('description', 'ilike', "%{$search}%");
         }
 
         return view('products.index', [
@@ -47,9 +47,12 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'tax_rate_id' => 'nullable|exists:tax_rates,id',
             'name' => 'required|string|max:255',
+            'sku' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'stock_quantity' => 'nullable|integer|min:0',
+            'opening_stock' => 'nullable|integer|min:0',
+            'opening_stock_unit_cost' => 'nullable|numeric|min:0',
             'unit_size' => 'nullable|numeric|min:0',
             'specifications' => 'nullable|array',
             'image' => 'nullable|image|max:10240|mimes:jpeg,jpg,png',
@@ -60,9 +63,28 @@ class ProductController extends Controller
             $validated['image_path'] = '/storage/' . $path;
         }
 
-        $validated['stock_quantity'] = $validated['stock_quantity'] ?? 0;
+        // Handle opening stock
+        $openingStock = (int) ($validated['opening_stock'] ?? 0);
+        $unitCost = isset($validated['opening_stock_unit_cost']) ? (float) $validated['opening_stock_unit_cost'] : null;
 
-        Product::create($validated);
+        $validated['stock_quantity'] = $openingStock;
+        
+        // Remove helper fields before create
+        unset($validated['opening_stock'], $validated['opening_stock_unit_cost']);
+
+        $product = Product::create($validated);
+
+        // Record initial stock adjustment if > 0
+        if ($openingStock > 0) {
+            $product->stockAdjustments()->create([
+                'user_id' => auth()->id(),
+                'quantity_change' => $openingStock,
+                'type' => 'initial_stock',
+                'reason' => 'Opening stock recorded at product creation.',
+                'unit_cost' => $unitCost,
+                'stock_after' => $openingStock,
+            ]);
+        }
 
         return redirect()->route('products.index')->with('success', 'Product created successfully.');
     }

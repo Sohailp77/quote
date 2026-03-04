@@ -27,8 +27,6 @@ class ProductVariant extends Model
         $this->increment('stock_quantity', $change);
         $this->refresh();
 
-        $mappedType = in_array($type, ['quote', 'return']) ? $type : 'manual';
-
         return \App\Models\StockAdjustment::create([
             'product_id' => $this->product_id,
             'product_variant_id' => $this->id,
@@ -36,8 +34,8 @@ class ProductVariant extends Model
             'quantity_change' => $change,
             'unit_cost' => $unitCost,
             'stock_after' => $this->stock_quantity,
-            'type' => $mappedType,
-            'reason' => $reason . ($type !== $mappedType ? " (Original Type: $type)" : ''),
+            'type' => $type,
+            'reason' => $reason,
             'quote_id' => $quoteId,
         ]);
     }

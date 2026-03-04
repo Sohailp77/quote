@@ -64,6 +64,8 @@
                             <option value="sale">External Sale (Revenue)</option>
                             <option value="loss">Damage/Loss (Cost)</option>
                             <option value="purchase">External Purchase (Cost)</option>
+                            <option value="reversion">Reversion/Correction</option>
+                            <option value="initial_stock">Initial Stock</option>
                         </select>
                     </div>
                     <div>
@@ -153,13 +155,43 @@
             </form>
         @endif
 
-        @if($product->stockAdjustments->isNotEmpty())
-            <div class="mt-5">
-                <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+        <div class="mt-8 border-t border-slate-100 dark:border-slate-800 pt-7">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                     <x-lucide-history class="w-3.5 h-3.5" /> Adjustment History
                 </h4>
+                
+                <!-- Filters -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="relative">
+                        <x-lucide-search class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search reason..." 
+                            class="pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] focus:ring-1 focus:ring-brand-500 transition-all w-full sm:w-40" />
+                    </div>
+                    <select wire:model.live="filterType" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-3 text-[11px] focus:ring-1 focus:ring-brand-500 transition-all">
+                        <option value="">All Types</option>
+                        <option value="quote">Quote</option>
+                        <option value="return">Return</option>
+                        <option value="manual">Manual</option>
+                        <option value="adjustment">Adjustment</option>
+                        <option value="sale">Sale</option>
+                        <option value="loss">Loss</option>
+                        <option value="purchase">Purchase</option>
+                        <option value="reversion">Reversion</option>
+                        <option value="initial_stock">Initial Stock</option>
+                    </select>
+                    <select wire:model.live="filterUserId" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-3 text-[11px] focus:ring-1 focus:ring-brand-500 transition-all">
+                        <option value="">All Users</option>
+                        @foreach($users as $user)
+                            <option value="{{ $user->id }}">{{ $user->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            @if($adjustments->isNotEmpty())
                 <div class="space-y-4">
-                    @foreach($product->stockAdjustments->take(10) as $adj)
+                    @foreach($adjustments as $adj)
                         @php
                             $isReversion = $adj->type === 'reversion';
                         @endphp
@@ -176,7 +208,7 @@
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="font-bold text-slate-900 dark:text-white">{{ $adj->quantity_change > 0 ? '+' : '' }}{{ $adj->quantity_change }}</span>
                                         <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700">
-                                            {{ $adj->type }}
+                                            {{ str_replace('_', ' ', $adj->type) }}
                                         </span>
                                         @if($adj->variant)
                                             <span class="text-[10px] font-bold text-sky-600 dark:text-sky-400">({{ $adj->variant->name }})</span>
@@ -208,8 +240,18 @@
                         </div>
                     @endforeach
                 </div>
-            </div>
-        @endif
+
+                <!-- Pagination Links -->
+                <div class="mt-6 border-t border-slate-50 dark:border-slate-800 pt-4">
+                    {{ $adjustments->links(data: ['scrollTo' => false]) }}
+                </div>
+            @else
+                <div class="mt-10 text-center py-10 bg-slate-50/50 dark:bg-slate-800/30 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <x-lucide-history class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                    <p class="text-sm text-slate-400 dark:text-slate-500 font-medium">No adjustment history found matching your filters.</p>
+                </div>
+            @endif
+        </div>
     </div>
 
     <script>

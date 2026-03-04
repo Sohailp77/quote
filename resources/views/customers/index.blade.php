@@ -39,7 +39,12 @@
                                 </a>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {{ $customer->company ?: '—' }}
+                                <div class="text-sm font-medium text-slate-900 dark:text-white">{{ $customer->company ?: '—' }}</div>
+                                @if($customer->address)
+                                    <div class="text-[10px] text-slate-400 dark:text-slate-500 max-w-[150px] truncate" title="{{ $customer->address }}">
+                                        {{ $customer->address }}
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-xs font-medium">
                                 <div class="flex flex-col gap-1 text-slate-500 dark:text-slate-400">

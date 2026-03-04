@@ -11,6 +11,54 @@
         </a>
     </div>
 
+    {{-- Summary Statistics --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {{-- Total Quotes --}}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex items-center gap-4 transition-all hover:border-brand-500/30 group">
+            <div class="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-brand-50 dark:group-hover:bg-brand-900/40 group-hover:text-brand-600 transition-all">
+                <x-lucide-file-text class="w-6 h-6" />
+            </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Quotes</p>
+                <h3 class="text-xl font-black text-slate-900 dark:text-white">{{ number_format($stats['total_count']) }}</h3>
+            </div>
+        </div>
+
+        {{-- Total Value --}}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex items-center gap-4 transition-all hover:border-brand-500/30 group">
+            <div class="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-brand-50 dark:group-hover:bg-brand-900/40 group-hover:text-brand-600 transition-all">
+                <x-lucide-banknote class="w-6 h-6" />
+            </div>
+            <div>
+                @php $currency = \App\Models\CompanySetting::getCurrencySymbol() ?? '₹'; @endphp
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Pipeline</p>
+                <h3 class="text-xl font-black text-slate-900 dark:text-white">{{ $currency }}{{ number_format($stats['total_value'], 0) }}</h3>
+            </div>
+        </div>
+
+        {{-- Accepted Count --}}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex items-center gap-4 transition-all hover:border-emerald-500/30 group">
+            <div class="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/40 group-hover:text-emerald-600 transition-all">
+                <x-lucide-check-circle class="w-6 h-6" />
+            </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Accepted</p>
+                <h3 class="text-xl font-black text-slate-900 dark:text-white">{{ number_format($stats['accepted_count']) }}</h3>
+            </div>
+        </div>
+
+        {{-- Pending Count --}}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex items-center gap-4 transition-all hover:border-amber-500/30 group">
+            <div class="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-amber-50 dark:group-hover:bg-amber-900/40 group-hover:text-amber-600 transition-all">
+                <x-lucide-clock class="w-6 h-6" />
+            </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">In Progress</p>
+                <h3 class="text-xl font-black text-slate-900 dark:text-white">{{ number_format($stats['pending_count']) }}</h3>
+            </div>
+        </div>
+    </div>
+
     {{-- Filter Bar --}}
     <form method="GET" action="{{ route('quotes.index') }}"
         class="mb-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-4"
@@ -119,6 +167,25 @@
                 <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}"
                     class="py-2 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
             </div>
+
+            <div>
+    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+        Date Type
+    </label>
+    <select name="date_type"
+        class="py-2 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+        <option value="created" {{ ($filters['date_type'] ?? 'created') === 'created' ? 'selected' : '' }}>
+            Created Date
+        </option>
+        <option value="delivery" {{ ($filters['date_type'] ?? '') === 'delivery' ? 'selected' : '' }}>
+            Delivery Date
+        </option>
+        <option value="accepted" {{ ($filters['date_type'] ?? '') === 'accepted' ? 'selected' : '' }}>
+            Accepted Date
+        </option>
+    </select>
+</div>
+
             {{-- Quick presets --}}
             <div class="flex items-end gap-2">
                 @php
@@ -130,8 +197,7 @@
                             now()->subMonth()->startOfMonth()->toDateString(),
                             now()->subMonth()->endOfMonth()->toDateString(),
                         ],
-                        'This Year' => [now()->startOfYear()->toDateString(), now()->endOfYear()->toDateString()],
-                    ];
+                        'This Year' => [now()->startOfYear()->toDateString(), now()->endOfYear()->toDateString()],                    ];
                 @endphp
                 @foreach ($presets as $label => [$from, $to])
                     <a href="{{ route('quotes.index', array_merge(request()->except(['date_from', 'date_to', 'page']), ['date_from' => $from, 'date_to' => $to])) }}"
@@ -213,9 +279,18 @@
                             ];
                             $statusColor = $statusColors[$quote->status] ?? $statusColors['draft'];
                         @endphp
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                            <td class="px-6 py-4 font-bold text-slate-900 dark:text-white">
-                                {{ $quote->reference_id }}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all border-l-2 border-transparent hover:border-brand-500">
+                            <td class="px-6 py-4 font-bold text-slate-900 dark:text-white group/ref">
+                                <div class="flex items-center gap-2" x-data="{ copied: false }">
+                                    <span class="tabular-nums transition-colors" :class="copied ? 'text-emerald-600' : ''">{{ $quote->reference_id }}</span>
+                                    <button 
+                                        @click="if(await copyToClipboard({{ Js::from($quote->reference_id) }})) { copied = true; setTimeout(() => copied = false, 2000) }"
+                                        class="opacity-0 group-hover/ref:opacity-100 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all"
+                                        title="Copy Reference ID">
+                                        <x-lucide-copy x-show="!copied" class="w-3 h-3 text-slate-400" />
+                                        <x-lucide-check x-show="copied" class="w-3 h-3 text-emerald-500" style="display: none;" />
+                                    </button>
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 {{ $quote->created_at->format('M d, Y') }}
@@ -241,7 +316,18 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span
-                                    class="px-2.5 py-1 text-xs font-semibold rounded-full border {{ $statusColor }} capitalize">
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full border {{ $statusColor }}">
+                                    @php
+                                        $statusIcon = match($quote->status) {
+                                            'draft' => 'lucide-file-edit',
+                                            'sent' => 'lucide-send',
+                                            'accepted' => 'lucide-check-circle',
+                                            'rejected' => 'lucide-x-circle',
+                                            'expired' => 'lucide-clock',
+                                            default => 'lucide-circle'
+                                        };
+                                    @endphp
+                                    <x-dynamic-component :component="$statusIcon" class="w-3 h-3" />
                                     {{ $quote->status }}
                                 </span>
                             </td>
@@ -489,14 +575,33 @@
                                         </form>
                                     @endif
 
-                                    @if (auth()->user()->isBoss() && $quote->status !== 'accepted' && $quote->status !== 'draft')
+                                    @php
+                                        $isOwner = $quote->user_id === auth()->id();
+                                        $isBoss = auth()->user()->isBoss();
+                                        
+                                        // Boss can Accept (Schedule) if NOT draft. If already accepted, they can still update logistics.
+                                        $canAccept = $isBoss && $quote->status !== 'draft';
+                                        
+                                        // Boss can Reject if not already rejected and not draft.
+                                        // Employee can Reject their own if sent/expired.
+                                        $canReject = ($isBoss && in_array($quote->status, ['sent', 'accepted', 'expired'])) ||
+                                                     (auth()->user()->isEmployee() && $isOwner && in_array($quote->status, ['sent', 'expired']));
+                                    @endphp
+
+                                    @if ($canAccept)
                                         <!-- Custom Delivery Modal Trigger -->
                                         <button type="button" @click="open = true"
                                             class="p-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-lg transition-colors"
-                                            title="Accept & Schedule Delivery">
-                                            <x-lucide-check-circle class="w-4 h-4" />
+                                            title="{{ $quote->status === 'accepted' ? 'Update Logistics / Schedule' : 'Accept & Schedule Delivery' }}">
+                                            @if ($quote->status === 'accepted')
+                                                <x-lucide-truck class="w-4 h-4" />
+                                            @else
+                                                <x-lucide-check-circle class="w-4 h-4" />
+                                            @endif
                                         </button>
+                                    @endif
 
+                                    @if ($canReject)
                                         <!-- Mark as Rejected -->
                                         <form action="{{ route('quotes.updateStatus', $quote->id) }}" method="POST"
                                             class="inline">
@@ -507,17 +612,19 @@
                                                 title="Mark as Rejected"><x-lucide-x-circle
                                                     class="w-4 h-4" /></button>
                                         </form>
+                                    @endif
 
+                                    @if ($canAccept)
                                         <!-- The Modal -->
                                         <div x-show="open" style="display: none;"
-                                            class="fixed inset-0 z-50 flex items-center justify-center p-4 text-left">
+                                            class="fixed w-full inset-0 z-50 flex items-center justify-center p-4 text-left">
                                             <div x-show="open" x-transition.opacity
                                                 class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                                                 @click="open = false"></div>
                                             <div x-show="open" x-transition:enter="transition ease-out duration-200"
                                                 x-transition:enter-start="opacity-0 scale-95 translate-y-4"
                                                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-                                                class="relative bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden z-10">
+                                                class="relative bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl overflow-hidden z-10">
                                                 <form action="{{ route('quotes.updateStatus', $quote->id) }}"
                                                     method="POST">
                                                     @csrf @method('PATCH') <input type="hidden" name="status"
@@ -578,6 +685,24 @@
                                         </div>
                                     @endif
 
+                                    <!-- WhatsApp Share Action -->
+                                    <button 
+                                        type="button"
+                                        @click="shareQuoteFile({{ Js::from(route('quotes.pdf', $quote->id)) }}, {{ Js::from($quote->reference_id . '.pdf') }}, 'whatsapp', {{ Js::from($quote->customer_name) }}, {{ Js::from($quote->reference_id) }}, {{ Js::from($quote->customer_phone ?? '') }})"
+                                        class="p-2 text-emerald-600 hover:text-white hover:bg-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg transition-all"
+                                        title="Share on WhatsApp">
+                                        <x-lucide-message-circle class="w-4 h-4" />
+                                    </button>
+                                    
+                                    <!-- Email Share Action -->
+                                    <button 
+                                        type="button"
+                                        @click="shareQuoteFile({{ Js::from(route('quotes.pdf', $quote->id)) }}, {{ Js::from($quote->reference_id . '.pdf') }}, 'email', {{ Js::from($quote->customer_name) }}, {{ Js::from($quote->reference_id) }}, {{ Js::from($quote->customer_phone ?? '') }})"
+                                        class="p-2 text-brand-600 hover:text-white hover:bg-brand-600 bg-brand-50 dark:bg-brand-900/30 rounded-lg transition-all"
+                                        title="Share via Email">
+                                        <x-lucide-mail class="w-4 h-4" />
+                                    </button>
+
                                     <!-- View / Print Action (Always Available) -->
                                     <a href="{{ route('quotes.pdf', $quote->id) }}" target="_blank"
                                         class="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
@@ -612,4 +737,95 @@
             </div>
         @endif
     </div>
+    @push('scripts')
+    <script>
+        /**
+         * Robust Copy to Clipboard
+         */
+        async function copyToClipboard(text) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } else {
+                    // Fallback for non-secure contexts
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-9999px";
+                    textArea.style.top = "0";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    return successful;
+                }
+            } catch (err) {
+                console.error('Copy failed', err);
+                return false;
+            }
+        }
+
+        /**
+         * Enhanced PDF Sharing (Web Share API + Smart Fallbacks)
+         */
+        async function shareQuoteFile(url, filename, type, customerName, referenceId, phone = '') {
+            let sharedViaAPI = false;
+            
+            try {
+                // Only attempt Web Share on mobile/supported browsers
+                if (navigator.share && navigator.canShare) {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('PDF fetch failed');
+                    const blob = await response.blob();
+                    const file = new File([blob], filename, { type: 'application/pdf' });
+
+                    const shareData = {
+                        files: [file],
+                        title: `Quotation ${referenceId}`,
+                        text: `Hello ${customerName}, please find the attached quotation ${referenceId}.`,
+                    };
+
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share(shareData);
+                        sharedViaAPI = true;
+                    }
+                }
+            } catch (err) {
+                console.error('Web Share failed:', err);
+            }
+
+            // If Web Share API didn't handle it with Downloading PDF 
+            if (!sharedViaAPI) {
+                // Download PDF
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+                const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+                const fallbackMsg = `Hello ${customerName}, please find your quotation (${referenceId}) here: ${url}`;
+                
+                if (type === 'whatsapp') {
+                    const waUrl = cleanPhone 
+                        ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(fallbackMsg)}`
+                        : `https://wa.me/?text=${encodeURIComponent(fallbackMsg)}`;
+                    window.open(waUrl, '_blank');
+                } else if (type === 'email') {
+                    const subject = encodeURIComponent(`Quotation ${referenceId}`);
+                    const body = encodeURIComponent(fallbackMsg);
+                    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                }
+
+                // Helpful hint for desktop users since we can't auto-attach files on PC web
+                if (!navigator.share) {
+                    // Optimized notification (non-blocking if possible, but alert is easiest for now)
+                    console.log("Desktop fallback triggered. File sharing limited to links.");
+                }
+            }
+        }
+    </script>
+    @endpush
 </x-app-layout>

@@ -120,6 +120,23 @@
                             </div>
                         @endif
 
+                        @if ($customer->address)
+                            <div class="flex items-start gap-4">
+                                <div
+                                    class="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                    <x-lucide-map-pin class="w-4 h-4" />
+                                </div>
+                                <div class="pt-0.5 min-w-0">
+                                    <p
+                                        class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                        Primary Address</p>
+                                    <p class="text-sm font-bold text-slate-900 dark:text-white mt-0.5 leading-relaxed">
+                                        {{ $customer->address }}
+                                    </p>
+                                </div>
+                            </div>
+                        @endif
+
                         @if (!$customer->email && !$customer->phone)
                             <div
                                 class="text-sm font-medium text-slate-500 italic text-center py-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">

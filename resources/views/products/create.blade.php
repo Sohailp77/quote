@@ -106,6 +106,35 @@
                                 accept="image/*" />
                             <x-input-error :messages="$errors->get('image')" class="mt-2" />
                         </div>
+
+                        <!-- Initial Stock Details -->
+                        <div class="md:col-span-2 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[24px] border border-slate-100 dark:border-slate-700 mt-2">
+                             <div class="flex items-center gap-2 mb-4">
+                                <x-lucide-package class="w-4 h-4 text-brand-500" />
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Initial Stock Taking</h3>
+                             </div>
+                             
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="opening_stock" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Opening Quantity</label>
+                                    <input id="opening_stock" type="number" name="opening_stock" value="{{ old('opening_stock', 0) }}"
+                                        class="block w-full bg-white dark:bg-slate-900 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-xl shadow-sm text-sm"
+                                        placeholder="0" />
+                                    <x-input-error :messages="$errors->get('opening_stock')" class="mt-2" />
+                                </div>
+                                <div>
+                                    <label for="opening_stock_unit_cost" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Opening Unit Cost ({{ $currency ?? '₹' }})</label>
+                                    <input id="opening_stock_unit_cost" type="number" step="0.01" name="opening_stock_unit_cost" value="{{ old('opening_stock_unit_cost') }}"
+                                        class="block w-full bg-white dark:bg-slate-900 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-xl shadow-sm text-sm"
+                                        placeholder="0.00" />
+                                    <x-input-error :messages="$errors->get('opening_stock_unit_cost')" class="mt-2" />
+                                </div>
+                             </div>
+                             <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-3 flex items-center gap-1">
+                                <x-lucide-info class="w-3 h-3" />
+                                This will set the starting stock level and create an initial history record.
+                             </p>
+                        </div>
                     </div>
 
                     <div>

@@ -62,8 +62,8 @@ class StockTest extends TestCase
         $this->assertDatabaseHas('stock_adjustments', [
             'product_id' => $product->id,
             'quantity_change' => 5,
-            'type' => 'manual',
-            'reason' => 'Found extra in warehouse (Original Type: adjustment)',
+            'type' => 'adjustment',
+            'reason' => 'Found extra in warehouse',
         ]);
     }
 
@@ -142,7 +142,7 @@ class StockTest extends TestCase
         $this->assertDatabaseHas('stock_adjustments', [
             'product_id' => $product->id,
             'quantity_change' => -5,
-            'type' => 'manual',
+            'type' => 'reversion',
         ]);
     }
 }

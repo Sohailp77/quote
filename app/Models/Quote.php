@@ -14,6 +14,7 @@ class Quote extends Model
         'customer_name',
         'customer_email',
         'customer_phone',
+        'customer_address',
         'reference_id',
         'status',
         'subtotal',

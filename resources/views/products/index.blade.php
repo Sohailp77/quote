@@ -56,12 +56,29 @@
                         $currency = \App\Models\CompanySetting::where('key', 'currency_symbol')->value('value') ?? '₹';
                     @endphp
                     @foreach ($products as $product)
+
+                    @php
+
+                        $stock = $product->stock_quantity ?? 0;
+                        $variantsStock = clone $product->variants;
+                        $variantsStockCount = $variantsStock->sum('stock_quantity') ?? 0;
+                        $totalStock = $stock + $variantsStockCount;
+                        $hasVariants = $product->variants->isNotEmpty();
+                        $isLow = $totalStock <= 5;
+                        $isOut = $totalStock === 0;
+                    @endphp
                         <div
                             class="group bg-white dark:bg-slate-900 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-slate-100 dark:border-slate-800 overflow-hidden hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] transition-all hover:-translate-y-0.5 flex flex-col">
                             <div class="bg-slate-100 dark:bg-slate-950 relative overflow-hidden">
                                 @if ($product->image_path)
-                                    <img src="{{ asset($product->image_path) }}" alt="{{ $product->name }}"
+                                    {{-- <img src="{{ asset($product->image_path) }}" alt="{{ $product->name }}"
                                         class="object-cover w-full h-44 group-hover:scale-105 transition-transform duration-500">
+                                         --}}
+
+                                    <div class="relative w-full aspect-[4/3] bg-slate-100 dark:bg-slate-950 overflow-hidden">
+                                        <img src="{{ asset($product->image_path) }}"
+                                            class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                    </div>
                                 @else
                                     <div class="flex items-center justify-center h-44">
                                         <x-lucide-package class="w-10 h-10 text-slate-300 dark:text-slate-600" />
@@ -70,6 +87,16 @@
                                 <div
                                     class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
                                     {{ $currency }}{{ number_format($product->price, 2) }}
+                                </div>
+
+                                <div
+                                    class="absolute bottom-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+                                    @php
+                                        $stockClass = $totalStock <= 5
+                                            ? 'bg-red-500/90 text-white'
+                                            : 'bg-emerald-500/90 text-white';
+                                    @endphp
+                                    <span :class="stockClass">{{ $totalStock }}</span>
                                 </div>
                             </div>
                             <div class="p-5 flex flex-col flex-1">
