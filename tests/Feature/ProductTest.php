@@ -66,7 +66,7 @@ class ProductTest extends TestCase
             'category_id' => $category->id,
             'tax_rate_id' => $taxRate->id,
             'price' => 100.00,
-            'stock_quantity' => 10,
+            'opening_stock' => 10,
             'unit_size' => 1,
             'description' => 'A test product',
             'image' => UploadedFile::fake()->image('product.jpg')

@@ -73,7 +73,6 @@ class PurchaseOrderTest extends TestCase
             'quantity' => 50,
             'unit_cost' => 25.50,
             'status' => 'pending',
-            'created_by' => $this->boss->id,
         ]);
     }
 
@@ -100,7 +99,6 @@ class PurchaseOrderTest extends TestCase
             'quantity' => 10,
             'unit_cost' => 10.00,
             'status' => 'pending',
-            'created_by' => $this->boss->id,
         ]);
 
         $response = $this->actingAs($this->boss)->patch(route('purchase-orders.updateStatus', $po), [
@@ -121,7 +119,6 @@ class PurchaseOrderTest extends TestCase
             'quantity' => 25,
             'unit_cost' => 10.00,
             'status' => 'transit',
-            'created_by' => $this->boss->id,
         ]);
 
         $initialStock = $product->stock_quantity;
@@ -141,7 +138,7 @@ class PurchaseOrderTest extends TestCase
         $this->assertDatabaseHas('stock_adjustments', [
             'product_id' => $product->id,
             'quantity_change' => 25,
-            'type' => 'manual', // since purchase_order drops to manual in our model mapping
+            'type' => 'purchase_order',
         ]);
     }
 }

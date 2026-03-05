@@ -17,10 +17,19 @@ return new class extends Migration {
             $table->string('customer_name');
             $table->string('customer_email')->nullable();
             $table->string('customer_phone')->nullable();
+            $table->text('customer_address')->nullable();
 
             // Quote Details
             $table->string('reference_id')->unique()->nullable();
             $table->string('status')->default('draft');
+
+            // Delivery Details
+            $table->date('delivery_date')->nullable();
+            $table->time('delivery_time')->nullable();
+            $table->string('delivery_partner')->nullable();
+            $table->string('tracking_number')->nullable();
+            $table->string('delivery_status')->nullable(); // e.g., 'pending', 'shipped', 'delivered'
+            $table->text('delivery_note')->nullable();
 
             // Tax & Totals
             $table->decimal('subtotal', 10, 2)->default(0);

@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->integer('quantity_change'); // positive = added, negative = deducted
             $table->decimal('unit_cost', 15, 2)->nullable();
             $table->integer('stock_after');     // snapshot after adjustment
-            $table->enum('type', ['manual', 'quote', 'return'])->default('manual');
+            $table->string('type')->default('manual');
             $table->string('reason')->nullable();
             $table->timestamp('reverted_at')->nullable();
             $table->foreignId('quote_id')->nullable()->constrained()->nullOnDelete();
