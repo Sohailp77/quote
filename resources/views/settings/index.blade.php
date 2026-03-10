@@ -58,6 +58,7 @@
                                 ['id' => 'tax_config', 'label' => 'Tax Configuration', 'icon' => 'settings'],
                                 ['id' => 'tax_rates', 'label' => 'Tax Rates', 'icon' => 'percent'],
                                 ['id' => 'goals', 'label' => 'Business Goals', 'icon' => 'target'],
+                                ['id' => 'quote_defaults', 'label' => 'Quote Defaults', 'icon' => 'file-text'],
                                 [
                                     'id' => 'danger',
                                     'label' => 'Danger Zone',
@@ -505,6 +506,43 @@
                                     <button type="submit"
                                         class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition">
                                         Save Goals
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- QUOTE DEFAULTS TAB -->
+                        <div x-show="activeTab === 'quote_defaults'" x-cloak>
+                            <h3
+                                class="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+                                Default Quote Settings</h3>
+                            <p class="text-sm text-slate-400 dark:text-slate-500 mb-6">These values will be
+                                automatically pre-filled when you create a new quote. You can still edit them for each
+                                individual quote.</p>
+                            <form action="{{ route('settings.quote-defaults.update') }}" method="POST"
+                                class="space-y-6 max-w-xl">
+                                @csrf
+                                <div>
+                                    <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
+                                        for="default_notes">Default Customer Note</label>
+                                    <textarea name="default_notes" id="default_notes" rows="4"
+                                        class="mt-1 block w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:text-slate-300 focus:border-slate-400 focus:ring-slate-200 rounded-xl shadow-sm">{{ old('default_notes', $quoteDefaults['default_notes'] ?? '') }}</textarea>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Briefly thank the
+                                        customer or provide instructions.</p>
+                                </div>
+                                <div>
+                                    <label class="block font-medium text-sm text-slate-700 dark:text-slate-300"
+                                        for="default_terms">Default Terms & Conditions</label>
+                                    <textarea name="default_terms" id="default_terms" rows="6"
+                                        class="mt-1 block w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:text-slate-300 focus:border-slate-400 focus:ring-slate-200 rounded-xl shadow-sm">{{ old('default_terms', $quoteDefaults['default_terms'] ?? '') }}</textarea>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Payment terms, validity,
+                                        and other legal conditions.</p>
+                                </div>
+                                <div
+                                    class="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
+                                    <button type="submit"
+                                        class="inline-flex items-center px-4 py-2 bg-slate-800 dark:bg-brand-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 transition">
+                                        Save Default Quote Settings
                                     </button>
                                 </div>
                             </form>

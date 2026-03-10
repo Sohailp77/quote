@@ -107,6 +107,19 @@
                 </select>
             </div>
 
+            {{-- Payment Status --}}
+            <div class="min-w-[140px]">
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Payment</label>
+                <select name="payment_status"
+                    class="w-full py-2 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                    <option value="">All Payments</option>
+                    @foreach (['pending', 'partial', 'paid'] as $p)
+                        <option value="{{ $p }}" {{ ($filters['payment_status'] ?? '') === $p ? 'selected' : '' }}>
+                            {{ ucfirst($p) }}</option>
+                    @endforeach
+                </select>
+            </div>
+
             {{-- Date Range Toggle --}}
             <div>
                 <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Date
@@ -222,6 +235,7 @@
                                 'search' => 'Search: "' . $val . '"',
                                 'status' => 'Status: ' . ucfirst($val),
                                 'delivery_status' => 'Delivery: ' . ucfirst($val),
+                                'payment_status' => 'Payment: ' . ucfirst($val),
                                 'date_from' => 'From: ' . $val,
                                 'date_to' => 'To: ' . $val,
                                 'overdue' => 'Overdue Only',
@@ -254,7 +268,11 @@
                             <th class="px-6 py-4">Created By</th>
                         @endif
                         <th class="px-6 py-4 whitespace-nowrap">Total Amount</th>
+                        @if(auth()->user()->isBoss())
+                            <th class="px-6 py-4 whitespace-nowrap text-right">Profit</th>
+                        @endif
                         <th class="px-6 py-4 whitespace-nowrap">Status</th>
+                        <th class="px-6 py-4 whitespace-nowrap">Payment</th>
                         <th class="px-6 py-4 whitespace-nowrap">Delivery</th>
                         <th class="px-6 py-4 text-right whitespace-nowrap">Actions</th>
                     </tr>
@@ -262,9 +280,6 @@
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
                     @forelse($quotes as $quote)
                         @php
-                            $currency =
-                                \App\Models\CompanySetting::where('key', 'currency_symbol')->value('value') ?? '₹';
-
                             $statusColors = [
                                 'draft' =>
                                     'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700',
@@ -312,8 +327,26 @@
                                 </td>
                             @endif
                             <td class="px-6 py-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                                {{ $currency }}{{ number_format($quote->total_amount, 2) }}
+                                <div class="flex flex-col">
+                                    <span>{{ $currency }}{{ number_format($quote->total_amount, 2) }}</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">Inc. {{ $currency }}{{ number_format($quote->tax_amount, 2) }} tax</span>
+                                </div>
                             </td>
+                            @if(auth()->user()->isBoss())
+                                <td class="px-6 py-4 text-right whitespace-nowrap">
+                                    @php
+                                        $profitMargin = $quote->total_amount > 0 ? ($quote->profit_amount / $quote->total_amount) * 100 : 0;
+                                    @endphp
+                                    <div class="flex flex-col items-end">
+                                        <span class="font-bold {{ $quote->profit_amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
+                                            {{ $quote->profit_amount >= 0 ? '+' : '' }}{{ $currency }}{{ number_format($quote->profit_amount, 2) }}
+                                        </span>
+                                        <span class="text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded mt-0.5">
+                                            {{ number_format($profitMargin, 1) }}% Margin
+                                        </span>
+                                    </div>
+                                </td>
+                            @endif
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span
                                     class="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full border {{ $statusColor }}">
@@ -330,6 +363,92 @@
                                     <x-dynamic-component :component="$statusIcon" class="w-3 h-3" />
                                     {{ $quote->status }}
                                 </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap" x-data="{ payOpen: false }">
+                                @if ($quote->status === 'accepted')
+                                    @php
+                                        $payBadge = match ($quote->payment_status) {
+                                            'paid' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+                                            'partial' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                                            default => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+                                        };
+                                        $payIcon = match ($quote->payment_status) {
+                                            'paid' => 'lucide-check-circle',
+                                            'partial' => 'lucide-percent',
+                                            default => 'lucide-clock',
+                                        };
+                                    @endphp
+                                    <div class="flex flex-col gap-1">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full border border-transparent {{ $payBadge }}">
+                                            <x-dynamic-component :component="$payIcon" class="w-3 h-3" />
+                                            {{ $quote->payment_status ?: 'Pending' }}
+                                        </span>
+                                        @if ($quote->payment_method)
+                                            <span class="text-[9px] text-slate-400 font-medium px-1">{{ $quote->payment_method }}</span>
+                                        @endif
+                                        
+                                        @if (auth()->user()->isBoss())
+                                            <button @click="payOpen = true" type="button"
+                                                class="text-[9px] font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 mt-0.5 text-left px-1">
+                                                Update Payment
+                                            </button>
+                                        @endif
+                                    </div>
+
+                                    {{-- Update Payment Modal --}}
+                                    <div x-show="payOpen" style="display:none"
+                                        class="fixed inset-0 z-50 flex items-center justify-center p-4 text-left">
+                                        <div x-show="payOpen" x-transition.opacity
+                                            class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                                            @click="payOpen = false"></div>
+                                        <div x-show="payOpen" x-transition:enter="transition ease-out duration-200"
+                                            x-transition:enter-start="opacity-0 scale-95"
+                                            x-transition:enter-end="opacity-100 scale-100"
+                                            class="relative bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden z-10">
+                                            <form action="{{ route('quotes.updatePayment', $quote->id) }}"
+                                                method="POST">
+                                                @csrf @method('PATCH')
+                                                <div class="p-6">
+                                                    <h3 class="text-lg font-black text-slate-900 dark:text-white mb-1">
+                                                        Update Payment</h3>
+                                                    <p class="text-xs text-slate-500 mb-5">{{ $quote->reference_id }}</p>
+                                                    <div class="space-y-4">
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Status</label>
+                                                            <select name="payment_status" required
+                                                                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                                                                <option value="pending" {{ $quote->payment_status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                                                <option value="partial" {{ $quote->payment_status === 'partial' ? 'selected' : '' }}>Partial</option>
+                                                                <option value="paid" {{ $quote->payment_status === 'paid' ? 'selected' : '' }}>Paid</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Method</label>
+                                                            <select name="payment_method"
+                                                                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                                                                <option value="">Select Method</option>
+                                                                <option value="Cash" {{ $quote->payment_method === 'Cash' ? 'selected' : '' }}>Cash</option>
+                                                                <option value="Bank Transfer" {{ $quote->payment_method === 'Bank Transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                                                                <option value="UPI" {{ $quote->payment_method === 'UPI' ? 'selected' : '' }}>UPI</option>
+                                                                <option value="Cheque" {{ $quote->payment_method === 'Cheque' ? 'selected' : '' }}>Cheque</option>
+                                                                <option value="Other" {{ $quote->payment_method === 'Other' ? 'selected' : '' }}>Other</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="px-6 py-4 bg-slate-50 border-t border-slate-100 dark:bg-slate-800/50 dark:border-slate-800 flex justify-end gap-3">
+                                                    <button type="button" @click="payOpen = false"
+                                                        class="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors">Cancel</button>
+                                                    <button type="submit"
+                                                        class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition-all">Update</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                @else
+                                    <span class="text-xs text-slate-300 dark:text-slate-600">—</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4" x-data="{ editOpen: false, deliveredOpen: false }">
                                 @if ($quote->status === 'accepted' && ($quote->delivery_date || $quote->delivery_partner || $quote->tracking_number))
@@ -641,6 +760,29 @@
                                                         <div class="space-y-4">
                                                             <div class="grid grid-cols-2 gap-4">
                                                                 <div>
+                                                                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Payment Status <span class="text-rose-500">*</span></label>
+                                                                    <select name="payment_status" required
+                                                                        class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                                                        <option value="pending">Pending</option>
+                                                                        <option value="partial">Partial Payment</option>
+                                                                        <option value="paid">Fully Paid</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Payment Method</label>
+                                                                    <select name="payment_method"
+                                                                        class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                                                        <option value="">Select Method</option>
+                                                                        <option value="Cash">Cash</option>
+                                                                        <option value="Bank Transfer">Bank Transfer</option>
+                                                                        <option value="UPI">UPI</option>
+                                                                        <option value="Cheque">Cheque</option>
+                                                                        <option value="Other">Other</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div class="grid grid-cols-2 gap-4">
+                                                                <div>
                                                                     <label
                                                                         class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Delivery
                                                                         Date</label>
@@ -714,7 +856,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ auth()->user()->isBoss() ? '7' : '6' }}"
+                            <td colspan="{{ auth()->user()->isBoss() ? '10' : '8' }}"
                                 class="px-6 py-12 text-center text-slate-500">
                                 <x-lucide-file-text
                                     class="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />

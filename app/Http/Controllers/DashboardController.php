@@ -15,6 +15,15 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        $user = auth()->user();
+        $tenant = $user->tenant()->with('plan')->first();
+        $plan = $tenant?->plan;
+
+        // Superadmins should use the admin panel, not the tenant dashboard
+        if ($user->isSuperAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         $timeframe = $request->query('timeframe', 'monthly');
         $validTimeframes = ['weekly', 'monthly', 'yearly', 'all', 'custom'];
         if (!in_array($timeframe, $validTimeframes)) {
@@ -66,12 +75,29 @@ class DashboardController extends Controller
                 };
             }
 
+            // We filter by DIFFERENT columns depending on what we are counting
+            // For general counts/lists, we use created_at.
+            // For revenue, we will use filtered logic below.
             $filteredQuotesQuery->whereBetween('created_at', [$start, $end]);
         }
 
         // Period KPIs
         $totalQuotes = (clone $filteredQuotesQuery)->count();
-        $acceptedRevenue = (clone $filteredQuotesQuery)->where('status', 'accepted')->sum('total_amount');
+        
+        // Revenue should be filtered by ACCEPTED_AT for the chosen period
+        $revenueQuery = (clone $quotesQuery)->where('status', 'accepted');
+        if ($timeframe !== 'all') {
+            $revenueQuery->whereBetween('accepted_at', [$start, $end]);
+        }
+        
+        $acceptedStats = $revenueQuery
+            ->selectRaw('SUM(total_amount) as revenue, SUM(total_cost) as cost')
+            ->first();
+
+        $acceptedRevenue = $acceptedStats->revenue ?? 0;
+        $acceptedCost = $acceptedStats->cost ?? 0;
+        $netProfit = $acceptedRevenue - $acceptedCost;
+
         $avgDealSize = $totalQuotes > 0 ? $acceptedRevenue / $totalQuotes : 0;
 
         $statusBreakdown = (clone $filteredQuotesQuery)->select('status', DB::raw('COUNT(*) as count'))
@@ -86,46 +112,75 @@ class DashboardController extends Controller
 
         $growth = null;
         if ($timeframe === 'monthly' && $isBoss) {
-            $lastMonthRevenue = (clone $quotesQuery)->where('status', 'accepted')->whereBetween('created_at', [
+            $lastMonthRevenue = (clone $quotesQuery)->where('status', 'accepted')->whereBetween('accepted_at', [
                 now()->subMonth()->startOfMonth(),
                 now()->subMonth()->endOfMonth()
             ])->sum('total_amount');
             $growth = $lastMonthRevenue > 0 ? round((($acceptedRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1) : null;
         }
 
-        // Chart Data logic
-        $chartData = [];
-        $chartLabels = [];
-
+        // Chart Data logic using efficient grouping
         if ($timeframe === 'weekly' || ($timeframe === 'custom' && isset($start) && $start->diffInDays($end) <= 7)) {
             $days = $timeframe === 'weekly' ? 7 : $start->diffInDays($end) + 1;
-            $current = $timeframe === 'weekly' ? now()->subDays(6) : $start;
+            $currentStart = $timeframe === 'weekly' ? now()->subDays(6)->startOfDay() : $start;
+            $currentEnd = $timeframe === 'weekly' ? now()->endOfDay() : $end;
+
+            $dailyData = (clone $quotesQuery)->where('status', 'accepted')
+                ->whereBetween('accepted_at', [$currentStart, $currentEnd])
+                ->selectRaw('DATE(accepted_at) as date, SUM(total_amount) as total')
+                ->groupBy('date')
+                ->pluck('total', 'date');
+
             for ($i = 0; $i < $days; $i++) {
-                $date = $current->copy()->addDays($i)->toDateString();
-                $chartLabels[] = $current->copy()->addDays($i)->format('D');
-                $chartData[] = (clone $quotesQuery)->where('status', 'accepted')->whereDate('created_at', $date)->sum('total_amount');
+                $date = $currentStart->copy()->addDays($i);
+                $dateString = $date->toDateString();
+                $chartLabels[] = $date->format('D');
+                $chartData[] = $dailyData[$dateString] ?? 0;
             }
         } elseif ($timeframe === 'monthly' || ($timeframe === 'custom' && isset($start) && $start->diffInDays($end) <= 31)) {
             $days = $timeframe === 'monthly' ? now()->daysInMonth : $start->diffInDays($end) + 1;
-            $current = $timeframe === 'monthly' ? now()->startOfMonth() : $start;
+            $currentStart = $timeframe === 'monthly' ? now()->startOfMonth() : $start;
+            $currentEnd = $timeframe === 'monthly' ? now()->endOfMonth() : $end;
+
+            $dailyData = (clone $quotesQuery)->where('status', 'accepted')
+                ->whereBetween('accepted_at', [$currentStart, $currentEnd])
+                ->selectRaw('DATE(accepted_at) as date, SUM(total_amount) as total')
+                ->groupBy('date')
+                ->pluck('total', 'date');
+
             for ($i = 0; $i < $days; $i++) {
-                $date = $current->copy()->addDays($i)->toDateString();
-                $chartLabels[] = $current->copy()->addDays($i)->format('j');
-                $chartData[] = (clone $quotesQuery)->where('status', 'accepted')->whereDate('created_at', $date)->sum('total_amount');
+                $date = $currentStart->copy()->addDays($i);
+                $dateString = $date->toDateString();
+                $chartLabels[] = $date->format('j');
+                $chartData[] = $dailyData[$dateString] ?? 0;
             }
         } elseif ($timeframe === 'yearly') {
+            $currentYear = now()->year;
+            $monthlyData = (clone $quotesQuery)->where('status', 'accepted')
+                ->whereYear('accepted_at', $currentYear)
+                ->selectRaw('EXTRACT(MONTH FROM accepted_at) as month, SUM(total_amount) as total')
+                ->groupBy('month')
+                ->pluck('total', 'month');
+
             for ($i = 1; $i <= 12; $i++) {
-                $monthStart = now()->startOfYear()->addMonths($i - 1)->startOfMonth();
-                $monthEnd = $monthStart->copy()->endOfMonth();
-                $chartLabels[] = $monthStart->format('M');
-                $chartData[] = (clone $quotesQuery)->where('status', 'accepted')->whereBetween('created_at', [$monthStart, $monthEnd])->sum('total_amount');
+                $chartLabels[] = \Carbon\Carbon::create()->month($i)->format('M');
+                $chartData[] = $monthlyData[(float)$i] ?? $monthlyData[$i] ?? 0;
             }
         } else {
-            // Default to last 7 days for 'all' or long 'custom'
+            $currentStart = now()->subDays(6)->startOfDay();
+            $currentEnd = now()->endOfDay();
+
+            $dailyData = (clone $quotesQuery)->where('status', 'accepted')
+                ->whereBetween('accepted_at', [$currentStart, $currentEnd])
+                ->selectRaw('DATE(accepted_at) as date, SUM(total_amount) as total')
+                ->groupBy('date')
+                ->pluck('total', 'date');
+
             for ($i = 6; $i >= 0; $i--) {
-                $date = now()->subDays($i)->toDateString();
-                $chartLabels[] = now()->subDays($i)->format('D');
-                $chartData[] = (clone $quotesQuery)->where('status', 'accepted')->whereDate('created_at', $date)->sum('total_amount');
+                $date = now()->subDays($i);
+                $dateString = $date->toDateString();
+                $chartLabels[] = $date->format('D');
+                $chartData[] = $dailyData[$dateString] ?? 0;
             }
         }
 
@@ -155,17 +210,21 @@ class DashboardController extends Controller
 
         if ($isBoss) {
             $empQuery = User::where('role', 'employee')
-                ->withCount(['quotes' => function ($q) use ($timeframe, $start, $end) {
-                    if ($timeframe !== 'all') {
-                        $q->whereBetween('created_at', [$start, $end]);
+                ->withCount([
+                    'quotes' => function ($q) use ($timeframe, $start, $end) {
+                        if ($timeframe !== 'all') {
+                            $q->whereBetween('created_at', [$start, $end]);
+                        }
                     }
-                }])
-                ->withSum(['quotes' => function ($q) use ($timeframe, $start, $end) {
-                    if ($timeframe !== 'all') {
-                        $q->whereBetween('created_at', [$start, $end]);
+                ])
+                ->withSum([
+                    'quotes' => function ($q) use ($timeframe, $start, $end) {
+                        if ($timeframe !== 'all') {
+                            $q->whereBetween('created_at', [$start, $end]);
+                        }
+                        $q->where('status', 'accepted');
                     }
-                    $q->where('status', 'accepted');
-                }], 'total_amount')
+                ], 'total_amount')
                 ->orderByDesc('quotes_sum_total_amount');
 
             $employeePerformance = $empQuery->get(['id', 'name', 'email']);
@@ -204,10 +263,17 @@ class DashboardController extends Controller
             'total_products' => Product::count(),
         ];
 
+        $lifetimeStats = (clone $quotesQuery)->where('status', 'accepted')
+            ->selectRaw('SUM(total_amount) as revenue, SUM(total_cost) as cost')
+            ->first();
+
         $quoteStats = [
             'total_quotes' => $totalQuotes,
-            'total_revenue' => $lifetimeRevenue,
+            'total_revenue' => $lifetimeStats->revenue ?? 0,
+            'lifetime_profit' => ($lifetimeStats->revenue ?? 0) - ($lifetimeStats->cost ?? 0),
             'filtered_revenue' => $acceptedRevenue,
+            'accepted_cost' => $acceptedCost,
+            'net_profit' => $netProfit,
             'avg_deal_size' => $avgDealSize,
             'conversion_rate' => $conversionRate,
             'accepted_count' => $acceptedCount,
@@ -230,7 +296,8 @@ class DashboardController extends Controller
             'stats',
             'quoteStats',
             'employeePerformance',
-            'lowStockAlerts'
+            'lowStockAlerts',
+            'plan'
         ));
     }
 }

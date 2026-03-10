@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\HasTenant;
 
 class PurchaseOrder extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTenant;
     protected $fillable = [
         'product_id',
         'product_variant_id',

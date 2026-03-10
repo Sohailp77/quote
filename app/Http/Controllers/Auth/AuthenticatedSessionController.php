@@ -26,7 +26,26 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        $user = auth()->user();
+
+        // If 2FA is enabled, redirect to challenge
+        if ($user->hasTwoFactorEnabled()) {
+            $request->session()->put([
+                'login.id' => $user->id,
+                'login.remember' => $request->filled('remember'),
+            ]);
+
+            Auth::guard('web')->logout();
+
+            return redirect()->route('two-factor.login');
+        }
+
         $request->session()->regenerate();
+
+        // Redirect superadmins to the admin panel
+        if ($user->isSuperAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

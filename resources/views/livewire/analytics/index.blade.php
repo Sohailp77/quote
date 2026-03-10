@@ -276,9 +276,9 @@
                         Snapshot of latest business events</p>
                 </div>
 
-                <a href="{{ route('analytics.ledger') }}"
+                <a href="{{ route('quotes.index') }}"
                     class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/50 dark:border-slate-800 rounded-2xl px-6 py-3 flex items-center gap-3 text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm transition-all group">
-                    View Business Ledger
+                    View Quotes
                     <x-lucide-chevron-right class="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-transform group-hover:translate-x-1" />
                 </a>
             </div>
@@ -297,7 +297,7 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-50 dark:divide-slate-800/20">
-                            @if(count($recentLedger) === 0)
+                            @if(count($recentActivity) === 0)
                                 <tr>
                                     <td colspan="5" class="px-8 py-20 text-center">
                                         <p class="text-slate-400 dark:text-slate-500 font-bold">No recent activity recorded.
@@ -305,7 +305,7 @@
                                     </td>
                                 </tr>
                             @else
-                                @foreach($recentLedger as $entry)
+                                @foreach($recentActivity as $entry)
                                     <tr class="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                         <td class="px-8 py-6 whitespace-nowrap">
                                             <div class="text-sm font-black text-slate-700 dark:text-slate-300">

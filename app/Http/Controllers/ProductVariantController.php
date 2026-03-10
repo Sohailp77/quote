@@ -15,7 +15,11 @@ class ProductVariantController extends Controller
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'name' => 'required|string|max:255',
-            'sku' => 'nullable|string|unique:product_variants,sku',
+            'sku' => [
+                'nullable',
+                'string',
+                \Illuminate\Validation\Rule::unique('product_variants', 'sku')->where('tenant_id', auth()->user()->tenant_id),
+            ],
             'image_path' => 'nullable|string',
             'stock_quantity' => 'required|integer|min:0',
             'variant_price' => 'nullable|numeric|min:0',
@@ -45,7 +49,11 @@ class ProductVariantController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'sku' => 'nullable|string|unique:product_variants,sku,' . $productVariant->id,
+            'sku' => [
+                'nullable',
+                'string',
+                \Illuminate\Validation\Rule::unique('product_variants', 'sku')->where('tenant_id', auth()->user()->tenant_id)->ignore($productVariant->id),
+            ],
             'image_path' => 'nullable|string',
             'stock_quantity' => 'required|integer|min:0',
             'variant_price' => 'nullable|numeric|min:0',

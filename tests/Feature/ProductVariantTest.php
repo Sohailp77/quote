@@ -21,6 +21,7 @@ class ProductVariantTest extends TestCase
     {
         parent::setUp();
         $this->boss = User::factory()->create(['role' => 'boss']);
+        auth()->login($this->boss);
     }
 
     private function createProduct(): Product

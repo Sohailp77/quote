@@ -22,6 +22,7 @@ class VariantManager extends Component
     public $sku = '';
     public $stock_quantity = '';
     public $variant_price = '';
+    public $cost_price = '';
     public $image;
 
     // For rendering validation errors
@@ -29,8 +30,16 @@ class VariantManager extends Component
     {
         $rules = [
             'name' => 'required|string|max:255',
-            'sku' => 'nullable|string|max:255|unique:product_variants,sku,' . ($this->editingVariantId ?? 'NULL'),
+            'sku' => [
+                'nullable',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('product_variants', 'sku')
+                    ->where('tenant_id', auth()->user()->tenant_id)
+                    ->ignore($this->editingVariantId),
+            ],
             'variant_price' => 'nullable|numeric|min:0',
+            'cost_price' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|max:10240',
         ];
 
@@ -66,6 +75,7 @@ class VariantManager extends Component
         // stock_quantity is disabled during edit, so we don't need to populate it for editing purposes
         $this->stock_quantity = $variant->stock_quantity;
         $this->variant_price = $variant->variant_price;
+        $this->cost_price = $variant->cost_price;
         $this->image = null; // Clear any existing file upload state
 
         $this->showForm = true;
@@ -74,7 +84,7 @@ class VariantManager extends Component
     public function cancelEdit()
     {
         $this->editingVariantId = null;
-        $this->reset(['name', 'sku', 'stock_quantity', 'variant_price', 'image']);
+        $this->reset(['name', 'sku', 'stock_quantity', 'variant_price', 'cost_price', 'image']);
         $this->showForm = false;
         $this->resetValidation();
     }
@@ -88,6 +98,7 @@ class VariantManager extends Component
             'name' => $this->name,
             'sku' => empty($this->sku) ? null : $this->sku,
             'variant_price' => empty($this->variant_price) ? null : $this->variant_price,
+            'cost_price' => empty($this->cost_price) ? null : $this->cost_price,
         ];
 
         if (!$this->editingVariantId) {

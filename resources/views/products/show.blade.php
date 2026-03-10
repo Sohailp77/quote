@@ -58,6 +58,22 @@
                         </span>
                     @endif
                     <p class="text-sm text-slate-400 dark:text-slate-500 mt-3 max-w-lg">{{ $product->description ?: 'No description provided.' }}</p>
+                    
+                    @if(!empty($product->specifications))
+                        <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                            <div class="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-bold mb-3">Specifications</div>
+                            <div class="flex flex-wrap gap-4">
+                                @foreach($product->specifications as $spec)
+                                    @if(!empty($spec['key']) && !empty($spec['value']))
+                                        <div class="bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-700">
+                                            <div class="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">{{ $spec['key'] }}</div>
+                                            <div class="text-xs font-bold text-slate-700 dark:text-slate-300">{{ $spec['value'] }}</div>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
             <div class="text-right flex-shrink-0 w-full md:w-auto border-t md:border-t-0 border-slate-100 dark:border-slate-800 pt-4 md:pt-0">

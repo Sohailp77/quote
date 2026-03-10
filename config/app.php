@@ -15,8 +15,9 @@ return [
 
     'name' => env('APP_NAME', 'CatalogApp'),
 
-    'provider_name' => env('PROVIDER_NAME', 'CatalogApp Pro'),
-    'provider_short_name' => env('PROVIDER_SHORT_NAME', 'CA'),
+    'provider_name' => env('APP_NAME', 'CatalogApp Pro'),
+    'provider_short_name' => env('APP_NAME_SHORT', 'CA'),
+    'guest_brand_color' => env('GUEST_BRAND_COLOR', '#2563eb'), // Default Royal Blue for Guests
 
     /*
     |--------------------------------------------------------------------------

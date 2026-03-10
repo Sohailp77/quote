@@ -39,6 +39,10 @@ class EmployeeController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
+        if ($request->user()->tenant->hasReachedLimit('users')) {
+            return redirect()->route('employees.index')->with('error', 'You have reached the maximum number of users allowed for your plan. Please upgrade to create more.');
+        }
+
         User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],

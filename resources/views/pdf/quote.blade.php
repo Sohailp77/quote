@@ -466,7 +466,13 @@
 
     <!-- Title Badge -->
     <div class="title-container">
-        <div class="title-badge">{{ $quote->status === 'draft' ? 'QUOTATION' : 'INVOICE' }}</div>
+        <div class="title-badge">
+            @if($quote->status === 'draft') QUOTATION (DRAFT)
+            @elseif($quote->status === 'sent') QUOTATION
+            @elseif($quote->status === 'accepted') ORDER CONFIRMATION
+            @else QUOTATION
+            @endif
+        </div>
     </div>
 
     <!-- Info Section (Bill To & Details) -->
@@ -647,10 +653,24 @@
                                 <td class="calc-value">{{ $currency }}{{ number_format($splitAmount, 2) }}</td>
                             </tr>
                         @endforeach
-                    @elseif($quote->tax_amount > 0)
+                    @if($quote->tax_amount > 0)
                         <tr>
                             <td class="calc-label">{{ $taxLabel }}</td>
                             <td class="calc-value">{{ $currency }}{{ number_format($quote->tax_amount, 2) }}</td>
+                        </tr>
+                    @endif
+
+                    @if($quote->delivery_charge > 0)
+                        <tr>
+                            <td class="calc-label">Delivery Charge</td>
+                            <td class="calc-value">{{ $currency }}{{ number_format($quote->delivery_charge, 2) }}</td>
+                        </tr>
+                    @endif
+
+                    @if($quote->additional_charge > 0)
+                        <tr>
+                            <td class="calc-label">{{ $quote->additional_charge_label ?: 'Additional Charge' }}</td>
+                            <td class="calc-value">{{ $currency }}{{ number_format($quote->additional_charge, 2) }}</td>
                         </tr>
                     @endif
 

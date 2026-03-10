@@ -28,11 +28,27 @@ class QuoteCart extends Component
     public $customer_email = '';
     public $customer_address = '';
     public $notes = '';
+    
+    // Extra Charges
+    public $delivery_charge = 0;
+    public $additional_charge = 0;
+    public $additional_charge_label = '';
 
     // Cart Settings
     public $tax_mode = 'item_level';
     public $discount_percentage = 0;
     public $gst_rate = 0;
+
+    // Advanced Settings
+    public $template_name = 'default';
+    public $display_settings = [
+        'show_images' => true,
+        'show_description' => true,
+        'show_tax' => true,
+        'show_sku' => false,
+    ];
+    public $custom_fields = [];
+    public $terms = '';
 
     // Items array
     public $items = [];
@@ -54,6 +70,14 @@ class QuoteCart extends Component
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.tax_rate_id' => 'nullable|exists:tax_rates,id',
+            'items.*.section_name' => 'nullable|string|max:100',
+            'template_name' => 'required|string',
+            'display_settings' => 'array',
+            'custom_fields' => 'array',
+            'terms' => 'nullable|string',
+            'delivery_charge' => 'nullable|numeric|min:0',
+            'additional_charge' => 'nullable|numeric|min:0',
+            'additional_charge_label' => 'nullable|string|max:255',
         ];
     }
 
@@ -74,6 +98,18 @@ class QuoteCart extends Component
             $this->tax_mode = $quote->tax_mode;
             $this->discount_percentage = $quote->discount_percentage;
             $this->gst_rate = $quote->gst_rate;
+            $this->template_name = $quote->template_name ?? 'default';
+            $this->display_settings = is_array($quote->display_settings) ? $quote->display_settings : [
+                'show_images' => true,
+                'show_description' => true,
+                'show_tax' => true,
+                'show_sku' => false,
+            ];
+            $this->custom_fields = is_array($quote->custom_fields) ? $quote->custom_fields : [];
+            $this->terms = $quote->terms;
+            $this->delivery_charge = $quote->delivery_charge;
+            $this->additional_charge = $quote->additional_charge;
+            $this->additional_charge_label = $quote->additional_charge_label;
 
             foreach ($quote->items as $item) {
                 $this->items[] = [
@@ -85,6 +121,7 @@ class QuoteCart extends Component
                     'tax_rate' => $item->tax_rate,
                     'tax_rate_id' => $item->tax_rate_id ?? '',
                     'area' => $item->area ?? '',
+                    'section_name' => $item->section_name ?? '',
                 ];
             }
         }
@@ -103,6 +140,13 @@ class QuoteCart extends Component
 
         if (empty($this->items)) {
             $this->addItem();
+            
+            // Set defaults for new quotes
+            if (!$this->quote || !$this->quote->exists) {
+                $defaults = \App\Models\CompanySetting::where('group', 'quote_defaults')->pluck('value', 'key');
+                $this->notes = $defaults['default_notes'] ?? '';
+                $this->terms = $defaults['default_terms'] ?? '';
+            }
         }
     }
 
@@ -116,7 +160,8 @@ class QuoteCart extends Component
             'price' => 0,
             'area' => '',
             'tax_rate' => 0,
-            'tax_rate_id' => ''
+            'tax_rate_id' => '',
+            'section_name' => ''
         ];
     }
 
@@ -255,7 +300,7 @@ public function selectCustomer($id)
 
     public function getTotalAmountProperty()
     {
-        return $this->taxableAmount + $this->taxAmount;
+        return $this->taxableAmount + $this->taxAmount + floatval($this->delivery_charge ?: 0) + floatval($this->additional_charge ?: 0);
     }
 
     public function setTaxMode($mode)
@@ -294,6 +339,7 @@ public function selectCustomer($id)
                     ]);
                 }
             } elseif (!empty($this->customer_name)) {
+                /** @var \App\Models\Customer|null $customer */
                 $customer = \App\Models\Customer::where('name', $this->customer_name)
                     ->when($this->customer_email, function ($query) {
                         return $query->where('email', $this->customer_email);
@@ -332,6 +378,13 @@ public function selectCustomer($id)
                     'tax_amount' => $tax_amount,
                     'total_amount' => $total_amount,
                     'notes' => $this->notes,
+                    'template_name' => $this->template_name,
+                    'display_settings' => $this->display_settings,
+                    'custom_fields' => $this->custom_fields,
+                    'terms' => $this->terms,
+                    'delivery_charge' => $this->delivery_charge ?: 0,
+                    'additional_charge' => $this->additional_charge ?: 0,
+                    'additional_charge_label' => $this->additional_charge_label,
                 ]);
 
                 // Clear old items to rebuild cleanly
@@ -355,11 +408,20 @@ public function selectCustomer($id)
                     'tax_amount' => $tax_amount,
                     'total_amount' => $total_amount,
                     'notes' => $this->notes,
+                    'template_name' => $this->template_name,
+                    'display_settings' => $this->display_settings,
+                    'custom_fields' => $this->custom_fields,
+                    'terms' => $this->terms,
+                    'delivery_charge' => $this->delivery_charge ?: 0,
+                    'additional_charge' => $this->additional_charge ?: 0,
+                    'additional_charge_label' => $this->additional_charge_label,
                     'status' => 'draft',
                     'created_by' => auth()->id(),
                 ]);
             }
 
+            $sortOrder = 0;
+            $totalCost = 0;
             foreach ($this->items as $item) {
                 $product = collect($this->products)->firstWhere('id', $item['product_id']);
                 $subtotal_item = floatval($item['price']) * intval($item['quantity']);
@@ -377,8 +439,27 @@ public function selectCustomer($id)
                     'price' => $item['price'],
                     'tax_rate' => $this->tax_mode === 'item_level' ? floatval($item['tax_rate'] ?? 0) : 0,
                     'tax_amount' => $tax_amount_item,
+                    'section_name' => strval($item['section_name'] ?? ''),
+                    'sort_order' => $sortOrder++,
                 ]);
+
+                // Calculate cost
+                $costPrice = 0;
+                if (!empty($item['product_variant_id'])) {
+                    $variant = \App\Models\ProductVariant::find($item['product_variant_id']);
+                    $costPrice = $variant ? $variant->cost_price : 0;
+                } else {
+                    $prod = \App\Models\Product::find($item['product_id']);
+                    $costPrice = $prod ? $prod->cost_price : 0;
+                }
+                $totalCost += ($costPrice * $item['quantity']);
             }
+
+            // Update quote with totals
+            $quoteRecord->update([
+                'total_cost' => $totalCost,
+                'profit_amount' => $quoteRecord->total_amount - $totalCost,
+            ]);
 
             DB::commit();
 

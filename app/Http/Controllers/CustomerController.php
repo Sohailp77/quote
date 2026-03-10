@@ -15,13 +15,37 @@ class CustomerController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where('name', 'ilike', "%{$search}%")
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'ilike', "%{$search}%")
                   ->orWhere('email', 'ilike', "%{$search}%")
                   ->orWhere('company', 'ilike', "%{$search}%")
                   ->orWhere('address', 'ilike', "%{$search}%");
+            });
         }
 
+        // Aggregate payment stats from Quotes model by customer name
+        // (Since we don't have a formal relationship yet, we'll use name matching for now
+        // to stay consistent with the existing codebase logic in 'show' method)
         $customers = $query->latest()->paginate(15)->withQueryString();
+        
+        foreach ($customers as $customer) {
+            $customerQuotes = \App\Models\Quote::where('customer_name', $customer->name)
+                ->where('status', 'accepted')
+                ->get();
+            
+            $customer->total_orders = $customerQuotes->count();
+            $customer->total_revenue = $customerQuotes->sum('total_amount');
+            $customer->pending_balance = $customerQuotes->where('payment_status', '!=', 'paid')->sum('total_amount');
+            
+            // Determine Health
+            if ($customer->total_orders === 0) {
+                $customer->payment_health = 'new';
+            } elseif ($customer->pending_balance > 0) {
+                $customer->payment_health = 'pending';
+            } else {
+                $customer->payment_health = 'good';
+            }
+        }
 
         return view('customers.index', compact('customers'));
     }

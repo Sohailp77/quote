@@ -25,6 +25,7 @@
                         <th class="px-6 py-4 whitespace-nowrap">Name</th>
                         <th class="px-6 py-4 whitespace-nowrap">Company</th>
                         <th class="px-6 py-4 whitespace-nowrap">Email & Phone</th>
+                        <th class="px-6 py-4 whitespace-nowrap">Payment Health</th>
                         <th class="px-6 py-4 whitespace-nowrap">Added On</th>
                         <th class="px-6 py-4 text-right whitespace-nowrap">Actions</th>
                     </tr>
@@ -62,6 +63,33 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-xs">
+                                <div class="flex flex-col gap-1">
+                                    @php
+                                        $healthBadge = match ($customer->payment_health) {
+                                            'good' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+                                            'pending' => 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                                            'new' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+                                            default => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+                                        };
+                                        $healthLabel = match ($customer->payment_health) {
+                                            'good' => 'Paid Up',
+                                            'pending' => 'Pending Balance',
+                                            'new' => 'No Orders',
+                                            default => 'Unknown',
+                                        };
+                                        $currency = \App\Models\CompanySetting::getCurrencySymbol();
+                                    @endphp
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide {{ $healthBadge }}">
+                                        {{ $healthLabel }}
+                                    </span>
+                                    @if($customer->pending_balance > 0)
+                                        <span class="text-[10px] font-black text-rose-600 dark:text-rose-400 px-1">
+                                            {{ $currency }}{{ number_format($customer->pending_balance, 2) }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-xs">
                                 {{ $customer->created_at->format('M d, Y') }}
                             </td>
                             <td class="px-6 py-4 text-right">
@@ -81,7 +109,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                            <td colspan="6" class="px-6 py-12 text-center text-slate-500">
                                 <x-lucide-users class="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
                                 <p class="text-base font-medium text-slate-900 dark:text-white">No customers found</p>
                                 <p class="text-sm mt-1">Start building your client pipeline.</p>

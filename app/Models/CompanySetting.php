@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasTenant;
 
 class CompanySetting extends Model
 {
+    use HasTenant;
+
     protected $fillable = ['key', 'value', 'group'];
 
     protected $casts = [

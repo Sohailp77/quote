@@ -51,13 +51,26 @@
                         <div>
                             <label for="price"
                                 class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                Price per <span x-text="selectedCategory ? selectedCategory.unit_name : 'Unit'"></span>
+                                Sales Price per <span x-text="selectedCategory ? selectedCategory.unit_name : 'Unit'"></span>
                                 ({{ $currency ?? '₹' }})
                             </label>
                             <input id="price" type="number" name="price" step="0.01" value="{{ old('price') }}"
                                 class="mt-1 block w-full bg-slate-50 dark:bg-slate-800 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-xl shadow-sm text-sm"
                                 placeholder="0.00" />
                             <x-input-error :messages="$errors->get('price')" class="mt-2" />
+                        </div>
+
+                        <div>
+                            <label for="cost_price"
+                                class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                Cost Price per <span x-text="selectedCategory ? selectedCategory.unit_name : 'Unit'"></span>
+                                ({{ $currency ?? '₹' }})
+                            </label>
+                            <input id="cost_price" type="number" name="cost_price" step="0.01" value="{{ old('cost_price') }}"
+                                class="mt-1 block w-full bg-slate-50 dark:bg-slate-800 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-xl shadow-sm text-sm"
+                                placeholder="0.00" title="Used for profit calculation" />
+                            <x-input-error :messages="$errors->get('cost_price')" class="mt-2" />
+                            <p class="text-[10px] text-slate-400 mt-1">Used to calculate profit in quotations.</p>
                         </div>
 
                         <template x-if="selectedCategory && selectedCategory.metric_type !== 'fixed'">
@@ -135,6 +148,29 @@
                                 This will set the starting stock level and create an initial history record.
                              </p>
                         </div>
+                    </div>
+
+                    <!-- Custom Specifications -->
+                    <div class="md:col-span-2 mt-4" x-data="{
+                        specs: [{ key: '', value: '' }],
+                        addSpec() { this.specs.push({ key: '', value: '' }); },
+                        removeSpec(index) { this.specs.splice(index, 1); }
+                    }">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Product Specifications (Custom Fields)</label>
+                            <button type="button" @click="addSpec" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1">+ Add Field</button>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <template x-for="(spec, index) in specs" :key="index">
+                                <div class="flex items-center gap-3">
+                                    <input type="text" x-model="spec.key" :name="`specifications[${index}][key]`" placeholder="e.g. Color" class="flex-1 bg-slate-50 dark:bg-slate-800 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 rounded-xl shadow-sm text-sm" />
+                                    <input type="text" x-model="spec.value" :name="`specifications[${index}][value]`" placeholder="e.g. Red" class="flex-1 bg-slate-50 dark:bg-slate-800 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 rounded-xl shadow-sm text-sm" />
+                                    <button type="button" @click="removeSpec(index)" class="p-2 text-slate-400 hover:text-red-500 transition-colors" x-show="specs.length > 1"><x-lucide-trash-2 class="w-4 h-4" /></button>
+                                </div>
+                            </template>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">Add custom key-value pairs like color, weight, material, etc.</p>
                     </div>
 
                     <div>

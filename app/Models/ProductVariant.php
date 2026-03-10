@@ -4,12 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasTenant;
 
 class ProductVariant extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTenant;
 
-    protected $fillable = ['product_id', 'name', 'sku', 'image_path', 'stock_quantity', 'variant_price'];
+    protected $fillable = ['product_id', 'name', 'sku', 'image_path', 'stock_quantity', 'variant_price', 'cost_price'];
+
+    protected $casts = [
+        'variant_price' => 'decimal:2',
+        'cost_price' => 'decimal:2',
+    ];
 
     public function product()
     {

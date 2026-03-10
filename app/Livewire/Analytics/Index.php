@@ -18,32 +18,30 @@ class Index extends Component
 {
     public function render()
     {
-        $totalRevenue = Revenue::whereNull('reverted_at')->sum('amount');
+        $quoteRevenue = Quote::where('status', 'accepted')->sum('total_amount');
+        $manualRevenue = Revenue::whereNull('reverted_at')->sum('amount');
+        $totalRevenue = $quoteRevenue + $manualRevenue;
 
-        // Monthly Revenue (Last 6 months)
-        $driver = DB::getDriverName();
-        $monthFormat = match ($driver) {
-            'sqlite' => "strftime('%Y-%m', recorded_at)",
-            'pgsql' => "TO_CHAR(recorded_at, 'YYYY-MM')",
-            default => "DATE_FORMAT(recorded_at, '%Y-%m')",
-        };
-
-        $monthlyRevenue = Revenue::whereNull('reverted_at')
-            ->select(
-                DB::raw('SUM(amount) as total'),
-                DB::raw("$monthFormat as month")
-            )
-            ->groupBy('month')
-            ->orderBy('month', 'desc')
-            ->take(6)
-            ->get();
+        // Monthly Revenue (Quotes + Manual)
+        $now = Carbon::now();
+        $months = [];
+        for ($i = 0; $i < 6; $i++) {
+            $start = $now->copy()->subMonths($i)->startOfMonth();
+            $end = $now->copy()->subMonths($i)->endOfMonth();
+            
+            $mQuoteRev = Quote::where('status', 'accepted')->whereBetween('accepted_at', [$start, $end])->sum('total_amount');
+            $mManualRev = Revenue::whereNull('reverted_at')->whereBetween('recorded_at', [$start, $end])->sum('amount');
+            
+            $months[] = (object) [
+                'month' => $start->format('Y-m'),
+                'total' => $mQuoteRev + $mManualRev
+            ];
+        }
+        $monthlyRevenue = collect($months);
 
         // Projections
         $recentMonths = $monthlyRevenue->take(3);
-        $avgMonthlyRevenue = $recentMonths->count() > 0
-            ? $recentMonths->avg('total')
-            : 0;
-
+        $avgMonthlyRevenue = $recentMonths->count() > 0 ? $recentMonths->avg('total') : 0;
         $nextMonthProjection = $avgMonthlyRevenue;
         $nextYearProjection = $avgMonthlyRevenue * 12;
 
@@ -62,19 +60,27 @@ class Index extends Component
             ->select(DB::raw('SUM(ABS(quantity_change) * unit_cost) as total'))
             ->value('total') ?? 0;
 
-        $now = Carbon::now();
-        // Monthly Costs (including losses)
-        $totalMonthlyCosts = StockAdjustment::whereNull('reverted_at')
-            ->whereNotNull('unit_cost')
-            ->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
-            ->select(DB::raw('SUM(ABS(quantity_change) * unit_cost) as total'))
-            ->value('total') ?? 0;
+        // Current Month Stats
+        $currentMonthStart = $now->copy()->startOfMonth();
+        $currentMonthEnd = $now->copy()->endOfMonth();
+        
+        $currentMonthQuoteRev = Quote::where('status', 'accepted')->whereBetween('accepted_at', [$currentMonthStart, $currentMonthEnd])->sum('total_amount');
+        $currentMonthManualRev = Revenue::whereNull('reverted_at')->whereBetween('recorded_at', [$currentMonthStart, $currentMonthEnd])->sum('amount');
+        $currentMonthRev = $currentMonthQuoteRev + $currentMonthManualRev;
 
-        // Monthly Stock Budget (only purchases/restocks)
+        $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
+        $lastMonthQuoteRev = Quote::where('status', 'accepted')->whereBetween('accepted_at', [$lastMonthStart, $lastMonthEnd])->sum('total_amount');
+        $lastMonthManualRev = Revenue::whereNull('reverted_at')->whereBetween('recorded_at', [$lastMonthStart, $lastMonthEnd])->sum('amount');
+        $lastMonthRev = $lastMonthQuoteRev + $lastMonthManualRev;
+
+        $growthRate = $lastMonthRev > 0 ? (($currentMonthRev - $lastMonthRev) / $lastMonthRev) * 100 : 0;
+
+        // Monthly Stock Budget
         $monthlyRestockCosts = StockAdjustment::whereNull('reverted_at')
             ->where('quantity_change', '>', 0)
             ->whereNotNull('unit_cost')
-            ->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
+            ->whereBetween('created_at', [$currentMonthStart, $currentMonthEnd])
             ->select(DB::raw('SUM(quantity_change * unit_cost) as total'))
             ->value('total') ?? 0;
 
@@ -84,23 +90,15 @@ class Index extends Component
         $budgetGoal = (float) ($businessGoals['monthly_stock_cost_budget'] ?? 0);
         $convGoal = (float) ($businessGoals['conversion_rate_goal'] ?? 0);
 
-        // Current Month Revenue
-        $currentMonthRev = Revenue::whereNull('reverted_at')->whereBetween('recorded_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])->sum('amount');
-        $lastMonthRev = Revenue::whereNull('reverted_at')->whereBetween('recorded_at', [$now->copy()->subMonth()->startOfMonth(), $now->copy()->subMonth()->endOfMonth()])->sum('amount');
-
-        $growthRate = $lastMonthRev > 0
-            ? (($currentMonthRev - $lastMonthRev) / $lastMonthRev) * 100
-            : 0;
-
         // Conversion Rate
-        $totalQuotes = Quote::whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])->count();
+        $totalQuotes = Quote::whereBetween('created_at', [$currentMonthStart, $currentMonthEnd])->count();
         $acceptedQuotes = Quote::where('status', 'accepted')
-            ->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
+            ->whereBetween('accepted_at', [$currentMonthStart, $currentMonthEnd])
             ->count();
         $currentConvRate = $totalQuotes > 0 ? ($acceptedQuotes / $totalQuotes) * 100 : 0;
 
-        // Recent Ledger Feed
-        $recentLedger = collect($this->getLedger(10));
+        // Recent Activity Feed
+        $recentActivity = collect($this->getActivity(10));
 
         return view('livewire.analytics.index', [
             'stats' => [
@@ -133,12 +131,30 @@ class Index extends Component
                     ]
                 ]
             ],
-            'recentLedger' => $recentLedger
+            'recentActivity' => $recentActivity
         ]);
     }
 
-    private function getLedger(int $limit = 50)
+    private function getActivity(int $limit = 50)
     {
+        $quotes = Quote::where('status', 'accepted')
+            ->orderBy('accepted_at', 'desc')
+            ->take($limit)
+            ->get()
+            ->map(function ($q) {
+                return [
+                    'id' => 'quote_' . $q->id,
+                    'is_revenue' => true,
+                    'type' => 'Quote Order',
+                    'amount' => (float) $q->total_amount,
+                    'date' => clone $q->accepted_at,
+                    'description' => "Order #{$q->reference_id} for {$q->customer_name}",
+                    'target_item' => $q->items->count() . ' items',
+                    'adjustment_id' => null,
+                    'reverted_at' => null, // accepted quotes aren't "reverted" in this list, they change status
+                ];
+            });
+
         $revenues = Revenue::with(['quote', 'stockAdjustment.variant', 'stockAdjustment.product'])
             ->orderBy('recorded_at', 'desc')
             ->take($limit)
@@ -147,7 +163,7 @@ class Index extends Component
                 return [
                     'id' => 'rev_' . $rev->id,
                     'is_revenue' => true,
-                    'type' => $rev->quote_id ? 'Quote Sale' : 'Manual Sale',
+                    'type' => $rev->quote_id ? 'Quote Payment' : 'Manual Sale',
                     'amount' => (float) $rev->amount,
                     'date' => clone $rev->recorded_at,
                     'description' => $rev->quote ? "Order #{$rev->quote->reference_id}" : ($rev->stockAdjustment ? $rev->stockAdjustment->reason : 'Direct Sale'),
@@ -178,6 +194,6 @@ class Index extends Component
                 ];
             });
 
-        return $revenues->concat($costs)->sortByDesc('date')->values()->take($limit);
+        return $quotes->concat($revenues)->concat($costs)->sortByDesc('date')->values()->take($limit);
     }
 }

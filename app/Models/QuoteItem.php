@@ -4,15 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasTenant;
 
 class QuoteItem extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTenant;
 
     protected $fillable = [
         'quote_id',
         'product_id',
         'product_variant_id',
+        'section_name',
+        'sort_order',
         'quantity',
         'price',
         'tax_rate',

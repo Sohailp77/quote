@@ -36,12 +36,11 @@
     @endif
 
     <!-- Validation Error Messages -->
-    @if ($errors->any())
+    @if (isset($errors) && $errors->any())
         @foreach ($errors->all() as $error)
             <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 8000)"
                 x-transition:enter="transition ease-out duration-300 transform"
-                x-transition:enter-start="opacity-0 translate-y-[-1rem]"
-                x-transition:enter-end="opacity-100 translate-y-0"
+                x-transition:enter-start="opacity-0 translate-y-[-1rem]" x-transition:enter-end="opacity-100 translate-y-0"
                 x-transition:leave="transition ease-in duration-200 transform"
                 x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-x-10"
                 class="bg-rose-50 dark:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 px-4 py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-start gap-3 backdrop-blur-md pointer-events-auto">

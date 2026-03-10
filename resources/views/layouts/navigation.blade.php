@@ -1,5 +1,4 @@
-<header class="bg-slate-100 dark:bg-slate-950 px-4 sm:px-6 lg:px-10 pt-6 pb-2 transition-colors duration-500"
-    x-data="{
+<header class="bg-slate-100 dark:bg-slate-950 px-4 sm:px-6 lg:px-10 pt-6 pb-2 transition-colors duration-500" x-data="{
         showUserMenu: false,
         showMobileMenu: false,
         theme: localStorage.getItem('theme') || 'system',
@@ -9,7 +8,7 @@
             window.dispatchEvent(new CustomEvent('theme-changed', { detail: val }));
         }
     }">
-    <div class="max-w-[1400px] mx-auto">
+    <div class="max-w-[1500px] mx-auto">
         <div
             class="bg-white dark:bg-slate-900 rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-none dark:border dark:border-slate-800 px-6 py-3 flex items-center justify-between gap-4 transition-colors duration-500">
 
@@ -27,35 +26,50 @@
 
             <!-- Desktop Nav -->
             <nav class="hidden md:flex items-center gap-1">
-                <a href="{{ route('dashboard') }}"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
-                    Dashboard
-                </a>
-                <a href="{{ route('categories.index') }}"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('categories.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
-                    Categories
-                </a>
-                <a href="{{ route('products.index') }}"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('products.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
-                    Products
-                </a>
-                <a href="{{ route('quotes.index') }}"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('quotes.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
-                    Quotes
-                </a>
-                <a href="{{ route('customers.index') }}"
-                    class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('customers.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
-                    Customers
-                </a>
-                @if (Auth::user() && Auth::user()->isBoss())
-                    <a href="{{ route('settings.index') }}"
-                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('settings.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
-                        Settings
+                @if (Auth::user()->isSuperAdmin())
+                    <a href="{{ route('admin.dashboard') }}"
+                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('admin.dashboard') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                        Admin Dashboard
                     </a>
-                    <a href="{{ route('analytics.index') }}"
-                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('analytics.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
-                        Analytics
+                    <a href="{{ route('admin.tenants.index') }}"
+                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('admin.tenants.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                        Tenants
                     </a>
+                    <a href="{{ route('admin.plans.index') }}"
+                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('admin.plans.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                        Plans
+                    </a>
+                @else
+                    <a href="{{ route('dashboard') }}"
+                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                        Dashboard
+                    </a>
+                    <a href="{{ route('categories.index') }}"
+                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('categories.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                        Categories
+                    </a>
+                    <a href="{{ route('products.index') }}"
+                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('products.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                        Products
+                    </a>
+                    <a href="{{ route('quotes.index') }}"
+                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('quotes.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                        Quotes
+                    </a>
+                    <a href="{{ route('customers.index') }}"
+                        class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('customers.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                        Customers
+                    </a>
+                    @if (Auth::user() && Auth::user()->isBoss())
+                        <a href="{{ route('settings.index') }}"
+                            class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('settings.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                            Settings
+                        </a>
+                        <a href="{{ route('analytics.index') }}"
+                            class="px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 {{ request()->routeIs('analytics.*') ? 'bg-slate-900 dark:bg-brand-500 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+                            Analytics
+                        </a>
+                    @endif
                 @endif
             </nav>
 
@@ -174,42 +188,49 @@
         <!-- Mobile Nav Dropdown -->
         <div x-show="showMobileMenu" style="display: none;"
             class="md:hidden mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden">
-            <a href="{{ route('dashboard') }}"
-                class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('dashboard') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Dashboard</a>
-            <a href="{{ route('categories.index') }}"
-                class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('categories.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Categories</a>
-            <a href="{{ route('products.index') }}"
-                class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('products.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Products</a>
-            <a href="{{ route('quotes.index') }}"
-                class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('quotes.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Quotes</a>
-            <a href="{{ route('customers.index') }}"
-                class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('customers.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Customers</a>
+            @if (Auth::user()->isSuperAdmin())
+                <a href="{{ route('admin.dashboard') }}"
+                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('admin.dashboard') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Admin
+                    Dashboard</a>
+                <a href="{{ route('admin.tenants.index') }}"
+                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('admin.tenants.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Tenants</a>
+                <a href="{{ route('admin.plans.index') }}"
+                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('admin.plans.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Plans</a>
+            @else
+                <a href="{{ route('dashboard') }}"
+                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('dashboard') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Dashboard</a>
+                <a href="{{ route('categories.index') }}"
+                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('categories.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Categories</a>
+                <a href="{{ route('products.index') }}"
+                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('products.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Products</a>
+                <a href="{{ route('quotes.index') }}"
+                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('quotes.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Quotes</a>
+                <a href="{{ route('customers.index') }}"
+                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('customers.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Customers</a>
 
-            @if (Auth::user()->isBoss())
-                <a href="{{ route('settings.index') }}"
-                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('settings.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Settings</a>
-                <a href="{{ route('analytics.index') }}"
-                    class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('analytics.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Analytics</a>
+                @if (Auth::user()->isBoss())
+                    <a href="{{ route('settings.index') }}"
+                        class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('settings.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Settings</a>
+                    <a href="{{ route('analytics.index') }}"
+                        class="flex items-center px-5 py-3 text-sm font-medium transition-colors {{ request()->routeIs('analytics.*') ? 'bg-slate-900 dark:bg-brand-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }}">Analytics</a>
+                @endif
             @endif
 
             <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800">
                 <p class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
                     Theme</p>
                 <div class="flex items-center gap-2">
-                    <button @click="setTheme('light')"
-                        :class="theme === 'light' ? 'bg-slate-200 dark:bg-slate-700 text-brand-600 dark:text-brand-400' :
+                    <button @click="setTheme('light')" :class="theme === 'light' ? 'bg-slate-200 dark:bg-slate-700 text-brand-600 dark:text-brand-400' :
                             'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400'"
                         class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all">
                         <x-lucide-sun class="w-4 h-4" /> Light
                     </button>
-                    <button @click="setTheme('system')"
-                        :class="theme === 'system' ? 'bg-slate-200 dark:bg-slate-700 text-brand-600 dark:text-brand-400' :
+                    <button @click="setTheme('system')" :class="theme === 'system' ? 'bg-slate-200 dark:bg-slate-700 text-brand-600 dark:text-brand-400' :
                             'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400'"
                         class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all">
                         <x-lucide-monitor class="w-4 h-4" /> System
                     </button>
-                    <button @click="setTheme('dark')"
-                        :class="theme === 'dark' ? 'bg-slate-200 dark:bg-slate-700 text-brand-600 dark:text-brand-400' :
+                    <button @click="setTheme('dark')" :class="theme === 'dark' ? 'bg-slate-200 dark:bg-slate-700 text-brand-600 dark:text-brand-400' :
                             'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400'"
                         class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all">
                         <x-lucide-moon class="w-4 h-4" /> Dark

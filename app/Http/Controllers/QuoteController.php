@@ -6,7 +6,6 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Quote;
 use App\Models\QuoteItem;
-use App\Models\Revenue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -47,6 +46,11 @@ class QuoteController extends Controller
             $query->where('delivery_status', $request->input('delivery_status'));
         }
 
+        // Payment status filter
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->input('payment_status'));
+        }
+
         // // Custom date range (based on created_at)
         // if ($request->filled('date_from')) {
         //     $query->whereDate('created_at', '>=', $request->input('date_from'));
@@ -83,7 +87,7 @@ class QuoteController extends Controller
                   });
         }
 
-        $filters = $request->only(['search', 'status', 'delivery_status', 'date_from', 'date_to', 'date_type', 'overdue']);
+        $filters = $request->only(['search', 'status', 'delivery_status', 'payment_status', 'date_from', 'date_to', 'date_type', 'overdue']);
 
         // Calculate Summary Stats based on current filters (before pagination)
         $stats = [
@@ -96,8 +100,9 @@ class QuoteController extends Controller
         ];
 
         $quotes = $query->latest()->paginate(15)->withQueryString();
+        $currency = \App\Models\CompanySetting::getCurrencySymbol();
 
-        return view('quotes.index', compact('quotes', 'filters', 'stats'));
+        return view('quotes.index', compact('quotes', 'filters', 'stats', 'currency'));
     }
     public function create()
     {
@@ -145,7 +150,14 @@ class QuoteController extends Controller
             'items.*.tax_rate' => 'nullable|numeric|min:0',
             'items.*.tax_rate_id' => 'nullable|exists:tax_rates,id',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
+            'delivery_charge' => 'nullable|numeric|min:0',
+            'additional_charge' => 'nullable|numeric|min:0',
+            'additional_charge_label' => 'nullable|string|max:255',
         ]);
+
+        if ($request->user()->tenant->hasReachedLimit('quotes')) {
+            return back()->with('error', 'You have reached the maximum number of quotes allowed for your plan. Please upgrade to create more.');
+        }
 
         $taxSettings = \App\Models\CompanySetting::getTaxConfiguration();
 
@@ -164,10 +176,14 @@ class QuoteController extends Controller
             'valid_until' => now()->addDays(30),
             'gst_type' => ($taxSettings['strategy'] === 'split') ? 'cgst_sgst' : 'igst',
             'gst_rate' => ($validated['tax_mode'] === 'global') ? ($validated['gst_rate'] ?? 0) : 0,
+            'delivery_charge' => $validated['delivery_charge'] ?? 0,
+            'additional_charge' => $validated['additional_charge'] ?? 0,
+            'additional_charge_label' => $validated['additional_charge_label'] ?? null,
         ]);
 
         $subtotal = 0;
         $totalTaxAmount = 0;
+        $totalCost = 0;
 
         foreach ($validated['items'] as $item) {
             $lineTotal = $item['price'] * $item['quantity'];
@@ -178,6 +194,17 @@ class QuoteController extends Controller
             if ($validated['tax_mode'] === 'item_level') {
                 $totalTaxAmount += $itemTaxAmount;
             }
+
+            // Calculate cost for profit tracking
+            $costPrice = 0;
+            if (!empty($item['product_variant_id'])) {
+                $variant = ProductVariant::find($item['product_variant_id']);
+                $costPrice = $variant ? $variant->cost_price ?? 0 : 0;
+            } else {
+                $product = Product::find($item['product_id']);
+                $costPrice = $product ? $product->cost_price ?? 0 : 0; 
+            }
+            $totalCost += $costPrice * $item['quantity'];
 
             QuoteItem::create([
                 'quote_id' => $quote->id,
@@ -201,8 +228,25 @@ class QuoteController extends Controller
         $quote->subtotal = $subtotal;
         $quote->discount_amount = $discountAmount;
         $quote->tax_amount = $totalTaxAmount;
-        $quote->total_amount = $taxableAmount + $totalTaxAmount;
+        $quote->total_amount = $taxableAmount + $totalTaxAmount + floatval($quote->delivery_charge) + floatval($quote->additional_charge);
+        
+        // Save profitability
+        $quote->total_cost = $totalCost;
+        $quote->profit_amount = $quote->total_amount - $totalCost;
         $quote->save();
+
+        // Send Notification to customer if email exists
+        if ($quote->customer_email) {
+            try {
+                $mailer = app(\App\Services\Mail\MultiSmtpMailer::class);
+                $mailer->send(
+                    \Illuminate\Support\Facades\Notification::route('mail', $quote->customer_email),
+                    new \App\Notifications\QuoteCreatedNotification($quote)
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to send quote notification: " . $e->getMessage());
+            }
+        }
 
         return redirect()->route('quotes.create')
             ->with('success', 'Quote created successfully.')
@@ -228,6 +272,8 @@ class QuoteController extends Controller
             'delivery_time' => ['nullable', 'string'],
             'delivery_partner' => ['nullable', 'string', 'max:255'],
             'tracking_number' => ['nullable', 'string', 'max:255'],
+            'payment_status' => ['nullable', 'in:pending,partial,paid'],
+            'payment_method' => ['nullable', 'string', 'max:255'],
         ]);
 
         $oldStatus = $quote->status;
@@ -271,19 +317,23 @@ class QuoteController extends Controller
 
             $quote->status = $newStatus;
             
-            // Save Delivery Information if moving to Accepted
+            // Save Delivery & Payment Information if moving to Accepted
             if ($newStatus === 'accepted') {
                 $quote->delivery_date = $validated['delivery_date'] ?? null;
                 $quote->delivery_time = $validated['delivery_time'] ?? null;
                 $quote->delivery_partner = $validated['delivery_partner'] ?? null;
                 $quote->tracking_number = $validated['tracking_number'] ?? null;
                 $quote->delivery_status = 'pending'; // Default when just accepted
+                
+                // Track Payment
+                $quote->payment_status = $request->payment_status ?? 'pending';
+                $quote->payment_method = $request->payment_method ?? null;
             }
 
-            $quote->save();
-
-            // 1. Moving TO Accepted (Deduct stock, add Revenue)
+            // 1. Moving TO Accepted (Deduct stock)
             if ($newStatus === 'accepted' && $oldStatus !== 'accepted') {
+                $quote->accepted_at = \Illuminate\Support\Carbon::now(); // Timestamp for analytics
+                
                 $quote->load('items.product', 'items.variant');
                 foreach ($quote->items as $item) {
                     $target = $item->variant ?: $item->product;
@@ -294,22 +344,25 @@ class QuoteController extends Controller
                             reason: "Quote {$quote->reference_id} accepted",
                             userId: $user->id,
                             quoteId: $quote->id,
+                            unitCost: $target->cost_price, // Record cost here for Analytics!
                         );
                     }
                 }
 
-                // Record Revenue
-                Revenue::create([
+                \App\Models\Revenue::create([
+                    'tenant_id' => $quote->tenant_id,
                     'quote_id' => $quote->id,
                     'amount' => $quote->total_amount,
-                    'currency' => 'INR', // Default to INR, can be made dynamic later
+                    'payment_method' => $quote->payment_method ?? 'cash',
                     'recorded_at' => now(),
                 ]);
             }
 
-            // 2. Moving AWAY from Accepted (Revert stock, Revert Revenue)
+            // 2. Moving AWAY from Accepted (Revert stock)
             if ($oldStatus === 'accepted' && $newStatus !== 'accepted') {
-                $quote->load('items.product', 'items.variant', 'stockAdjustments', 'revenues');
+                $quote->accepted_at = null; // Reset timestamp
+
+                $quote->load('items.product', 'items.variant', 'stockAdjustments');
 
                 // Revert stock adjustments
                 foreach ($quote->stockAdjustments as $adj) {
@@ -331,13 +384,13 @@ class QuoteController extends Controller
                     }
                 }
 
-                // Revert revenue
-                foreach ($quote->revenues as $rev) {
-                    if (!$rev->reverted_at) {
-                        $rev->update(['reverted_at' => now()]);
-                    }
-                }
+                \App\Models\Revenue::where('quote_id', $quote->id)
+                    ->whereNull('reverted_at')
+                    ->update(['reverted_at' => now()]);
             }
+
+            // CRITICAL: Status was changed but never saved!
+            $quote->save();
 
             return back()->with('success', 'Quote status updated.');
         });
@@ -351,7 +404,14 @@ class QuoteController extends Controller
         $themeSettings = \App\Models\CompanySetting::where('group', 'theme')->pluck('value', 'key')->all();
         $brandColor = $themeSettings['brand_color_primary'] ?? '#0077c0';
 
-        $html = view('pdf.quote', [
+        $templateView = 'pdf.' . ($quote->template_name ?: 'default');
+        
+        // Fallback to default if the modern/professional template doesn't exist yet
+        if (!view()->exists($templateView)) {
+            $templateView = 'pdf.default';
+        }
+
+        $html = view($templateView, [
             'quote' => $quote,
             'companyProfile' => $companyProfile,
             'brandColor' => $brandColor,
@@ -431,5 +491,24 @@ class QuoteController extends Controller
             : 'Delivery details updated successfully.';
 
         return back()->with('success', $msg);
+    }
+
+    /**
+     * Update payment details for an accepted quote.
+     */
+    public function updatePayment(Request $request, Quote $quote)
+    {
+        if ($quote->status !== 'accepted') {
+            return back()->with('error', 'Payment details can only be updated for accepted quotes.');
+        }
+
+        $validated = $request->validate([
+            'payment_status' => ['required', 'in:pending,partial,paid'],
+            'payment_method' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $quote->update($validated);
+
+        return back()->with('success', 'Payment status updated successfully.');
     }
 }

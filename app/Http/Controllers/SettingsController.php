@@ -27,6 +27,8 @@ class SettingsController extends Controller
         $goals = CompanySetting::where('group', 'goals')->pluck('value', 'key')->all();
         // Tax Rates
         $taxRates = TaxRate::orderBy('is_active', 'desc')->get();
+        // Quote Defaults
+        $quoteDefaults = CompanySetting::where('group', 'quote_defaults')->pluck('value', 'key')->all();
 
         return view('settings.index', compact(
             'activeTab',
@@ -34,7 +36,8 @@ class SettingsController extends Controller
             'theme',
             'taxConfig',
             'goals',
-            'taxRates'
+            'taxRates',
+            'quoteDefaults'
         ));
     }
 
@@ -163,5 +166,19 @@ class SettingsController extends Controller
         }
 
         return redirect()->route('settings.index')->with(['active_tab' => 'goals', 'success' => 'Business goals saved.']);
+    }
+
+    public function updateQuoteDefaults(Request $request)
+    {
+        $validated = $request->validate([
+            'default_notes' => 'nullable|string',
+            'default_terms' => 'nullable|string',
+        ]);
+
+        foreach ($validated as $key => $value) {
+            CompanySetting::updateOrCreate(['group' => 'quote_defaults', 'key' => $key], ['value' => $value]);
+        }
+
+        return redirect()->route('settings.index')->with(['active_tab' => 'quote_defaults', 'success' => 'Quote defaults saved.']);
     }
 }

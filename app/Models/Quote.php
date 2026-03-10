@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasTenant;
 
 class Quote extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTenant;
 
     protected $fillable = [
+        'tenant_id',
         'user_id',
         'customer_name',
         'customer_email',
@@ -32,14 +34,44 @@ class Quote extends Model
         'tracking_number',
         'delivery_status',
         'delivery_note',
+        'template_name',
+        'display_settings',
+        'custom_fields',
+        'terms',
+        'total_cost',
+        'profit_amount',
+        'delivery_charge',
+        'additional_charge',
+        'additional_charge_label',
+        'accepted_at',
+        'payment_status',
+        'payment_method',
     ];
 
     protected $casts = [
         'valid_until' => 'date',
         'tax_config_snapshot' => 'array',
         'delivery_date' => 'date',
-        'delivery_time' => 'string', // Handled as string typically, or keep as date/time string
+        'delivery_time' => 'string',
+        'display_settings' => 'array',
+        'custom_fields' => 'array',
+        'total_cost' => 'decimal:2',
+        'profit_amount' => 'decimal:2',
+        'delivery_charge' => 'decimal:2',
+        'additional_charge' => 'decimal:2',
+        'accepted_at' => 'datetime',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($quote) {
+            if (empty($quote->reference_id)) {
+                $quote->reference_id = 'QT-' . strtoupper(uniqid());
+            }
+        });
+    }
 
     public function user()
     {

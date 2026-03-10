@@ -17,12 +17,9 @@
         @livewireStyles
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-        <!-- Brand Color Script -->
+        <!-- Guest Theme Config -->
         @php
-            $settings = \App\Models\CompanySetting::whereIn('key', ['brand_color_primary'])
-                ->pluck('value', 'key')
-                ->toArray();
-            $brandColor = $settings['brand_color_primary'] ?? '#6366f1';
+            $brandColor = config('app.guest_brand_color', '#2563eb');
             $providerName = config('app.provider_name', 'CatalogApp Pro');
             $providerShortName = config('app.provider_short_name', 'CA');
         @endphp

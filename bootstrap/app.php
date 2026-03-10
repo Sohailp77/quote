@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'boss' => \App\Http\Middleware\BossMiddleware::class,
+            'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'admin.security' => \App\Http\Middleware\AdminSecurityMiddleware::class,
+            '2fa' => \App\Http\Middleware\EnsureTwoFactorIsVerified::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

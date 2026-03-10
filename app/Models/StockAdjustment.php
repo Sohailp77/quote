@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasTenant;
 
 class StockAdjustment extends Model
 {
+    use HasTenant;
     protected $fillable = [
         'product_id',
         'product_variant_id',

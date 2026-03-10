@@ -25,7 +25,8 @@ class ProductTest extends TestCase
 
         // Create Users
         $this->boss = User::factory()->create(['role' => 'boss']);
-        $this->user = User::factory()->create(['role' => 'employee']);
+        auth()->login($this->boss);
+        $this->user = User::factory()->create(['role' => 'employee', 'tenant_id' => $this->boss->tenant_id]);
 
         // Set company settings (to prevent the products.show error)
         CompanySetting::updateOrCreate(['key' => 'currency_symbol'], ['value' => '$']);
@@ -83,7 +84,7 @@ class ProductTest extends TestCase
 
         $product = Product::first();
         $this->assertNotNull($product->image_path);
-        Storage::disk('public')->assertExists(str_replace('/storage/', '', $product->image_path));
+        $this->assertTrue(Storage::disk('public')->exists(str_replace('/storage/', '', $product->image_path)));
     }
 
     public function test_product_show_page_renders_without_app_settings_error(): void

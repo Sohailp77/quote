@@ -124,62 +124,8 @@ class AnalyticsController extends Controller
                         'percent' => $convGoal > 0 ? min(100, round(($currentConvRate / $convGoal) * 100, 1)) : 0
                     ]
                 ]
-            ],
-            'recentLedger' => $this->getLedger(10)
+            ]
         ]);
     }
 
-    /**
-     * Display the full searchable/editable Business Ledger.
-     */
-    public function ledger(Request $request)
-    {
-        return view('analytics.ledger', [
-            'ledger' => $this->getLedger(500) // Increased limit for full view
-        ]);
-    }
-
-    private function getLedger(int $limit = 50)
-    {
-        $revenues = Revenue::with(['quote', 'stockAdjustment.variant', 'stockAdjustment.product'])
-            ->orderBy('recorded_at', 'desc')
-            ->take($limit)
-            ->get()
-            ->map(function ($rev) {
-                return [
-                    'id' => $rev->id,
-                    'is_revenue' => true,
-                    'type' => $rev->quote_id ? 'Quote Sale' : 'Manual Sale',
-                    'amount' => (float) $rev->amount,
-                    'date' => $rev->recorded_at,
-                    'description' => $rev->quote ? "Order #{$rev->quote->reference_id}" : ($rev->stockAdjustment ? $rev->stockAdjustment->reason : 'Direct Sale'),
-                    'target_item' => $rev->stockAdjustment ? ($rev->stockAdjustment->variant ? $rev->stockAdjustment->variant->name : $rev->stockAdjustment->product->name) : '-',
-                    'adjustment_id' => $rev->stock_adjustment_id,
-                    'reverted_at' => $rev->reverted_at,
-                ];
-            });
-
-        $costs = StockAdjustment::whereNotNull('unit_cost')
-            ->with(['product', 'variant', 'user'])
-            ->orderBy('created_at', 'desc')
-            ->take($limit)
-            ->get()
-            ->map(function ($adj) {
-                return [
-                    'id' => $adj->id,
-                    'is_revenue' => false,
-                    'type' => ucfirst($adj->type),
-                    'amount' => (float) (abs($adj->quantity_change) * $adj->unit_cost),
-                    'date' => $adj->created_at,
-                    'description' => $adj->reason,
-                    'target_item' => $adj->variant ? $adj->variant->name : $adj->product->name,
-                    'user' => $adj->user->name,
-                    'quantity' => $adj->quantity_change,
-                    'unit_cost' => (float) $adj->unit_cost,
-                    'reverted_at' => $adj->reverted_at,
-                ];
-            });
-
-        return $revenues->concat($costs)->sortByDesc('date')->values()->take($limit);
-    }
 }

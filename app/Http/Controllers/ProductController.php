@@ -18,8 +18,8 @@ class ProductController extends Controller
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('sku', 'ilike', "%{$search}%")
-                  ->orWhere('description', 'ilike', "%{$search}%");
+                ->orWhere('sku', 'ilike', "%{$search}%")
+                ->orWhere('description', 'ilike', "%{$search}%");
         }
 
         return view('products.index', [
@@ -47,16 +47,25 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'tax_rate_id' => 'nullable|exists:tax_rates,id',
             'name' => 'required|string|max:255',
-            'sku' => 'nullable|string|max:255',
+            'sku' => [
+                'nullable',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('products', 'sku')->where('tenant_id', auth()->user()->tenant_id),
+            ],
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
+            'cost_price' => 'nullable|numeric|min:0',
             'stock_quantity' => 'nullable|integer|min:0',
             'opening_stock' => 'nullable|integer|min:0',
             'opening_stock_unit_cost' => 'nullable|numeric|min:0',
             'unit_size' => 'nullable|numeric|min:0',
             'specifications' => 'nullable|array',
-            'image' => 'nullable|image|max:10240|mimes:jpeg,jpg,png',
         ]);
+
+        if ($request->user()->tenant->hasReachedLimit('products')) {
+            return redirect()->route('products.index')->with('error', 'You have reached the maximum number of products allowed for your plan. Please upgrade to create more.');
+        }
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('uploads/products', 'public');
@@ -68,7 +77,7 @@ class ProductController extends Controller
         $unitCost = isset($validated['opening_stock_unit_cost']) ? (float) $validated['opening_stock_unit_cost'] : null;
 
         $validated['stock_quantity'] = $openingStock;
-        
+
         // Remove helper fields before create
         unset($validated['opening_stock'], $validated['opening_stock_unit_cost']);
 
@@ -126,10 +135,18 @@ class ProductController extends Controller
             'category_id' => 'sometimes|exists:categories,id',
             'tax_rate_id' => 'nullable|exists:tax_rates,id',
             'name' => 'required|string|max:255',
+            'sku' => [
+                'nullable',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('products', 'sku')->where('tenant_id', auth()->user()->tenant_id)->ignore($product->id),
+            ],
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
+            'cost_price' => 'nullable|numeric|min:0',
             'stock_quantity' => 'nullable|integer|min:0',
             'unit_size' => 'nullable|numeric|min:0',
+            'specifications' => 'nullable|array',
             'image' => 'nullable|image|max:10240',
         ]);
 

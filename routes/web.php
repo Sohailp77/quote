@@ -29,7 +29,7 @@ Route::get('/', function () {
 
 
 // ── Authenticated routes ─────────────────────────────────────────────────────
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', '2fa'])->group(function () {
 
     // ─ Dashboard (role-aware) ───────────────────────────────────────────────
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
@@ -38,6 +38,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // 2FA Routes
+    Route::post('/two-factor-authentication', [\App\Http\Controllers\Auth\TwoFactorAuthenticationController::class, 'store'])->name('two-factor.enable');
+    Route::post('/two-factor-confirmed', [\App\Http\Controllers\Auth\TwoFactorAuthenticationController::class, 'confirm'])->name('two-factor.confirm');
+    Route::delete('/two-factor-authentication', [\App\Http\Controllers\Auth\TwoFactorAuthenticationController::class, 'destroy'])->name('two-factor.disable');
+    Route::get('/two-factor-recovery-codes', [\App\Http\Controllers\Auth\TwoFactorAuthenticationController::class, 'recoveryCodes'])->name('two-factor.recovery-codes');
+
 
     // ─ Catalog (all authenticated users) ───────────────────────────────────
     Route::resource('categories', CategoryController::class);
@@ -54,6 +61,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/quotes/{quote}/send-email', [\App\Http\Controllers\QuoteController::class, 'sendEmail'])->name('quotes.sendEmail');
     Route::patch('/quotes/{quote}/status', [\App\Http\Controllers\QuoteController::class, 'updateStatus'])->name('quotes.updateStatus');
     Route::patch('/quotes/{quote}/delivery', [\App\Http\Controllers\QuoteController::class, 'updateDelivery'])->name('quotes.updateDelivery');
+    Route::patch('/quotes/{quote}/payment', [\App\Http\Controllers\QuoteController::class, 'updatePayment'])->name('quotes.updatePayment');
+
 
     // ─ Settings (boss only) ─────────────────────────────────────────────────
     Route::middleware('boss')->group(function () {
@@ -66,6 +75,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/settings/tax-rates/{taxRate}', [\App\Http\Controllers\SettingsController::class, 'updateTaxRate'])->name('settings.tax-rates.update');
         Route::delete('/settings/tax-rates/{taxRate}', [\App\Http\Controllers\SettingsController::class, 'destroyTaxRate'])->name('settings.tax-rates.destroy');
         Route::post('/settings/goals', [\App\Http\Controllers\SettingsController::class, 'updateGoals'])->name('settings.goals.update');
+        Route::post('/settings/quote-defaults', [\App\Http\Controllers\SettingsController::class, 'updateQuoteDefaults'])->name('settings.quote-defaults.update');
 
         Route::resource('employees', EmployeeController::class)->only(['index', 'create', 'store', 'destroy']);
         Route::post('/stock/{product}/adjust', [StockController::class, 'adjust'])->name('stock.adjust');
@@ -82,11 +92,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Analytics
         Route::get('/analytics', \App\Livewire\Analytics\Index::class)->name('analytics.index');
-        Route::get('/analytics/ledger', \App\Livewire\Analytics\Ledger::class)->name('analytics.ledger');
 
         // Data Reset
         Route::post('/settings/start-fresh', [\App\Http\Controllers\DataResetController::class, 'resetData'])->name('settings.start-fresh');
     });
 });
+
+// ── Superadmin routes ────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified', 'superadmin', 'admin.security'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+    Route::resource('tenants', \App\Http\Controllers\Admin\TenantController::class);
+    Route::resource('plans', \App\Http\Controllers\Admin\PlanController::class)->except(['show']);
+    Route::resource('smtp', \App\Http\Controllers\Admin\SmtpConfigurationController::class)->except(['show']);
+});
+
+Route::get('/two-factor-challenge', [\App\Http\Controllers\Auth\TwoFactorChallengeController::class, 'create'])->name('two-factor.login');
+Route::post('/two-factor-challenge', [\App\Http\Controllers\Auth\TwoFactorChallengeController::class, 'store'])->middleware('throttle:6,1');
 
 require __DIR__ . '/auth.php';

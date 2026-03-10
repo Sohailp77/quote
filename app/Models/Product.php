@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\HasTenant;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTenant;
 
     protected $fillable = [
+        'tenant_id',
         'category_id',
         'name',
         'description',
@@ -20,6 +22,7 @@ class Product extends Model
         'image_path',
         'stock_quantity',
         'unit_size',
+        'cost_price',
         'specifications',
         'tax_rate_id',
     ];
@@ -27,6 +30,7 @@ class Product extends Model
     protected $casts = [
         'specifications' => 'array',
         'unit_size' => 'decimal:2',
+        'cost_price' => 'decimal:2',
         'stock_quantity' => 'integer',
     ];
 

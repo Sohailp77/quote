@@ -26,6 +26,9 @@
                             {{ $userRole === 'boss' ? 'Boss Dashboard' : 'My Dashboard' }}</h1>
                         <p class="text-xs text-slate-400 dark:text-slate-500">
                             {{ $userRole === 'boss' ? 'Full business overview' : 'Your personal performance overview' }}
+                            @if($plan)
+                                 • <span class="text-brand-600 dark:text-brand-400 font-bold">{{ $plan->name }} Plan</span>
+                            @endif
                         </p>
                     </div>
                 </div>
@@ -94,21 +97,14 @@
 
             <!-- KPI Cards -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <x-dashboard.kpi-card :label="$userRole === 'boss' ? 'Revenue (' . ucfirst($timeframe) . ')' : 'My Revenue (' . ucfirst($timeframe) . ')'" 
+                <x-dashboard.kpi-card :label="$userRole === 'boss' ? 'Revenue' : 'My Revenue'" 
                     :value="$currency . number_format($quoteStats['filtered_revenue'] ?? 0, 2)" 
-                    :sub="$timeframe === 'all' ? 'Liftime earnings' : 'For ' . $timeframeLabel" icon="coins" />
+                    :sub="'For ' . $timeframeLabel" icon="coins" />
 
-                @php
-                    $growth = $quoteStats['growth'] ?? null;
-                    $growthPositive = $growth !== null && $growth >= 0;
-                    $subTextGrowth = $userRole === 'boss'
-                            ? ($growth !== null
-                                ? ($growthPositive ? '+' : '') . $growth . '% vs last month'
-                                : 'vs. previous')
-                            : 'Lifetime total';
-                @endphp
-                <x-dashboard.kpi-card label="Lifetime Revenue" :value="$currency . number_format($quoteStats['total_revenue'] ?? 0, 2)" 
-                    :sub="$subTextGrowth" :subPositive="$userRole === 'boss' ? ($growth !== null ? $growthPositive : null) : null"
+                <x-dashboard.kpi-card label="Net Profit" 
+                    :value="$currency . number_format($quoteStats['net_profit'] ?? 0, 2)" 
+                    :sub="'Profit for ' . $timeframeLabel" 
+                    :subPositive="($quoteStats['net_profit'] ?? 0) > 0"
                     icon="trending-up" />
 
                 <x-dashboard.kpi-card :label="$userRole === 'boss' ? 'Conversion Rate' : 'My Conversion'" :value="($quoteStats['conversion_rate'] ?? 0) . '%'" :sub="($quoteStats['accepted_count'] ?? 0) . ' accepted quotes'" :subPositive="($quoteStats['conversion_rate'] ?? 0) >= 50"
@@ -303,7 +299,68 @@
                         </div>
                     @endif
 
-                    <!-- Quick Actions -->
+                    <!-- </div> -->
+
+                <!-- Plan Limits (Boss Only) -->
+                @if($userRole === 'boss' && $plan)
+                <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/50 dark:border-slate-800 rounded-[32px] p-7 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                             <x-lucide-activity class="w-4 h-4 text-brand-500" /> Plan Limits
+                        </h3>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">{{ $plan->name }}</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        {{-- Users Limit --}}
+                        @php
+                            $userCount = \App\Models\User::count();
+                            $userPct = min(100, ($userCount / $plan->max_users) * 100);
+                        @endphp
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold uppercase tracking-wide mb-1">
+                                <span class="text-slate-400">Users</span>
+                                <span class="{{ $userPct > 90 ? 'text-red-500' : 'text-slate-600' }}">{{ $userCount }} / {{ $plan->max_users }}</span>
+                            </div>
+                            <div class="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full {{ $userPct > 90 ? 'bg-red-500' : 'bg-brand-500' }}" style="width: {{ $userPct }}%"></div>
+                            </div>
+                        </div>
+
+                        {{-- Products Limit --}}
+                        @php
+                            $productCount = \App\Models\Product::count();
+                            $prodPct = min(100, ($productCount / $plan->max_products) * 100);
+                        @endphp
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold uppercase tracking-wide mb-1">
+                                <span class="text-slate-400">Products</span>
+                                <span class="{{ $prodPct > 90 ? 'text-red-500' : 'text-slate-600' }}">{{ $productCount }} / {{ $plan->max_products }}</span>
+                            </div>
+                            <div class="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full {{ $prodPct > 90 ? 'bg-red-500' : 'bg-brand-500' }}" style="width: {{ $prodPct }}%"></div>
+                            </div>
+                        </div>
+
+                        {{-- Quotes Limit (Monthly) --}}
+                        @php
+                            $quoteCount = \App\Models\Quote::whereMonth('created_at', now()->month)->count();
+                            $quotePct = min(100, ($quoteCount / $plan->max_quotes) * 100);
+                        @endphp
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold uppercase tracking-wide mb-1">
+                                <span class="text-slate-400">Monthly Quotes</span>
+                                <span class="{{ $quotePct > 90 ? 'text-red-500' : 'text-slate-600' }}">{{ $quoteCount }} / {{ $plan->max_quotes }}</span>
+                            </div>
+                            <div class="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full {{ $quotePct > 90 ? 'bg-red-500' : 'bg-brand-500' }}" style="width: {{ $quotePct }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Quick Actions -->
                     <div
                         class="bg-gradient-to-br from-brand-900 via-slate-900 to-slate-800 rounded-[32px] p-7 relative overflow-hidden shadow-[0_8px_30px_var(--color-brand-900)]">
                         <div class="absolute right-0 top-0 w-32 h-full opacity-10 flex"

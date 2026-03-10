@@ -21,7 +21,8 @@ class SettingsTest extends TestCase
         parent::setUp();
 
         $this->boss = User::factory()->create(['role' => 'boss']);
-        $this->employee = User::factory()->create(['role' => 'employee']);
+        auth()->login($this->boss);
+        $this->employee = User::factory()->create(['role' => 'employee', 'tenant_id' => $this->boss->tenant_id]);
 
         Storage::fake('public');
     }
