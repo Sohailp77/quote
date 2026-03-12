@@ -1,0 +1,17 @@
+.git
+vendor
+node_modules
+storage/*.key
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*.php
+storage/logs/*.log
+storage/app/public/*
+storage/app/private/*
+.env
+.phpunit.result.cache
+test_results.txt
+test_report.txt
+migrate.log
+public/build
+public/storage

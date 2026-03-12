@@ -15,15 +15,17 @@ RUN apt-get update && apt-get install -y \
 # Enable Apache rewrite
 RUN a2enmod rewrite
 
-# Set Laravel public as document root
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+# Set environment variables
+ENV LOG_CHANNEL=stderr
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
 # Update Apache config to use public folder
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
     /etc/apache2/sites-available/000-default.conf
 
 # Allow .htaccess overrides (IMPORTANT)
-RUN echo "<Directory /var/www/html/public>\n\
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf \
+    && echo "<Directory /var/www/html/public>\n\
     AllowOverride All\n\
     Require all granted\n\
 </Directory>" >> /etc/apache2/apache2.conf
@@ -45,4 +47,10 @@ RUN npm install && npm run build
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache
 
+# Copy entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 80
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
