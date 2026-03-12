@@ -10,9 +10,11 @@ class ProductVariant extends Model
 {
     use HasFactory, HasTenant;
 
-    protected $fillable = ['product_id', 'name', 'sku', 'image_path', 'stock_quantity', 'variant_price', 'cost_price'];
+    protected $fillable = ['product_id', 'name', 'sku', 'image_path', 'stock_quantity', 'low_stock_threshold', 'variant_price', 'cost_price'];
 
     protected $casts = [
+        'stock_quantity' => 'integer',
+        'low_stock_threshold' => 'integer',
         'variant_price' => 'decimal:2',
         'cost_price' => 'decimal:2',
     ];
@@ -23,15 +25,35 @@ class ProductVariant extends Model
     }
 
     // ── Helpers ───────────────────────────────────────────────────
-    public function isLowStock(int $threshold = 5): bool
+    public function isLowStock(): bool
     {
-        return $this->stock_quantity <= $threshold;
+        return $this->stock_quantity <= $this->low_stock_threshold;
     }
 
     public function adjustStock(int $change, string $type, string $reason, int $userId, ?int $quoteId = null, ?float $unitCost = null): \App\Models\StockAdjustment
     {
+        $oldStock = $this->stock_quantity;
+        
         $this->increment('stock_quantity', $change);
         $this->refresh();
+
+        $newStock = $this->stock_quantity;
+        $threshold = $this->low_stock_threshold ?? 5;
+
+        // Check if stock just dropped to or below threshold
+        if ($oldStock > $threshold && $newStock <= $threshold) {
+            $tenant = $this->tenant;
+            $itemName = "{$this->product->name} - {$this->name}";
+            
+            // UI Session Notification
+            if (request()->hasSession()) {
+                $alerts = session()->get('low_stock_alerts', []);
+                $alerts[] = "{$itemName} has dropped to {$newStock} units.";
+                session()->put('low_stock_alerts', $alerts);
+            }
+
+            // Email notifications were removed here in favor of a consolidated daily summary report.
+        }
 
         return \App\Models\StockAdjustment::create([
             'product_id' => $this->product_id,

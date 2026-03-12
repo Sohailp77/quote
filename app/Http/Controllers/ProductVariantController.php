@@ -22,6 +22,7 @@ class ProductVariantController extends Controller
             ],
             'image_path' => 'nullable|string',
             'stock_quantity' => 'required|integer|min:0',
+            'low_stock_threshold' => 'nullable|integer|min:0',
             'variant_price' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|max:10240',
         ]);
@@ -56,6 +57,7 @@ class ProductVariantController extends Controller
             ],
             'image_path' => 'nullable|string',
             'stock_quantity' => 'required|integer|min:0',
+            'low_stock_threshold' => 'nullable|integer|min:0',
             'variant_price' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|max:10240|mimes:jpeg,jpg,png',
         ]);

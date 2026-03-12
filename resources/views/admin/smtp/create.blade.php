@@ -59,7 +59,7 @@
 
                         <div class="col-span-2">
                             <label class="inline-flex items-center">
-                                <input type="checkbox" name="is_active" checked class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                                <input type="checkbox" name="is_active" value="1" checked class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
                                 <span class="ms-2 text-sm text-slate-600 dark:text-slate-400">Account is Active</span>
                             </label>
                         </div>

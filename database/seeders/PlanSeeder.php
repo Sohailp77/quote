@@ -23,6 +23,7 @@ class PlanSeeder extends Seeder
                 'max_products' => 5,
                 'max_quotes' => 10,
                 'is_active' => true,
+                'allow_email_notifications' => false,
             ],
             [
                 'name' => 'Professional',
@@ -34,6 +35,7 @@ class PlanSeeder extends Seeder
                 'max_products' => 30,
                 'max_quotes' => 1000,
                 'is_active' => true,
+                'allow_email_notifications' => true,
             ],
             [
                 'name' => 'Enterprise',
@@ -45,6 +47,7 @@ class PlanSeeder extends Seeder
                 'max_products' => 100,
                 'max_quotes' => 99999,
                 'is_active' => true,
+                'allow_email_notifications' => true,
             ],
         ];
 

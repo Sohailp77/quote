@@ -455,8 +455,9 @@ class QuoteController extends Controller
         try {
             $pdfBinary = $this->generatePdfBinary($quote);
             
-            \Illuminate\Support\Facades\Mail::to($request->email)
-                ->send(new \App\Mail\QuoteMail($quote, $pdfBinary, $request->message));
+            $mailer = app(\App\Services\Mail\MultiSmtpMailer::class);
+            $mailable = new \App\Mail\QuoteMail($quote, $pdfBinary, $request->message);
+            $mailer->sendMailable($request->email, $mailable);
 
             return back()->with('success', 'Quote sent successfully with PDF attachment.');
         } catch (\Exception $e) {

@@ -142,6 +142,13 @@
                                         placeholder="0.00" />
                                     <x-input-error :messages="$errors->get('opening_stock_unit_cost')" class="mt-2" />
                                 </div>
+                                <div class="md:col-span-2">
+                                    <label for="low_stock_threshold" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Low Stock Alert Threshold</label>
+                                    <input id="low_stock_threshold" type="number" name="low_stock_threshold" value="{{ old('low_stock_threshold', 5) }}"
+                                        class="block w-full bg-white dark:bg-slate-900 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-xl shadow-sm text-sm"
+                                        placeholder="5" />
+                                    <x-input-error :messages="$errors->get('low_stock_threshold')" class="mt-2" />
+                                </div>
                              </div>
                              <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-3 flex items-center gap-1">
                                 <x-lucide-info class="w-3 h-3" />

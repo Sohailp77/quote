@@ -19,6 +19,7 @@ class CreateOrder extends Component
 
     public $quantity = '';
     public $unit_cost = '';
+    public $update_cost_price = true;
     public $estimated_arrival = '';
 
     protected $rules = [
@@ -46,6 +47,20 @@ class CreateOrder extends Component
         $parsed = json_decode($value, true);
         $this->product_id = $parsed['product_id'] ?? null;
         $this->product_variant_id = $parsed['variant_id'] ?? null;
+        
+        // Auto-fill cost price
+        $this->unit_cost = '';
+        if ($this->product_variant_id) {
+            $variant = \App\Models\ProductVariant::find($this->product_variant_id);
+            if ($variant) {
+                $this->unit_cost = $variant->cost_price ?? '';
+            }
+        } elseif ($this->product_id) {
+            $product = \App\Models\Product::find($this->product_id);
+            if ($product) {
+                $this->unit_cost = $product->cost_price ?? '';
+            }
+        }
     }
 
     public function openModal()
@@ -57,6 +72,7 @@ class CreateOrder extends Component
     {
         $this->isModalOpen = false;
         $this->reset(['selectedProductString', 'product_id', 'product_variant_id', 'quantity', 'unit_cost', 'estimated_arrival']);
+        $this->update_cost_price = true;
         $this->resetValidation();
     }
 
@@ -83,6 +99,18 @@ class CreateOrder extends Component
             'estimated_arrival' => $validated['estimated_arrival'] ?? null,
             'status' => 'pending',
         ]);
+
+        if ($this->update_cost_price) {
+            if ($validated['product_variant_id'] && $validated['product_variant_id'] !== '') {
+                \App\Models\ProductVariant::where('id', $validated['product_variant_id'])->update([
+                    'cost_price' => $validated['unit_cost']
+                ]);
+            } else {
+                \App\Models\Product::where('id', $validated['product_id'])->update([
+                    'cost_price' => $validated['unit_cost']
+                ]);
+            }
+        }
 
         $this->closeModal();
         session()->flash('success', 'Purchase order created successfully.');

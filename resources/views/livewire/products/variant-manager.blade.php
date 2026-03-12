@@ -30,8 +30,8 @@
                 </button>
             </div>
             
-            <form wire:submit="save" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                <div class="md:col-span-2 lg:col-span-1">
+            <form wire:submit="save" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+                <div class="md:col-span-2 lg:col-span-2">
                     <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Name</label>
                     <input type="text" wire:model="name" placeholder="e.g. Alpine White" required class="block w-full bg-white dark:bg-slate-900 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-brand-500/20 rounded-xl shadow-sm text-sm" />
                     @error('name') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
@@ -52,6 +52,11 @@
                     @error('stock_quantity') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
                 </div>
                 <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Low Stock Threshold</label>
+                    <input type="number" wire:model="low_stock_threshold" placeholder="5" class="block w-full bg-white dark:bg-slate-900 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-brand-500/20 rounded-xl shadow-sm text-sm" />
+                    @error('low_stock_threshold') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
+                </div>
+                <div>
                     <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Price Override ({{ $appSettings['currency_symbol'] ?? '₹' }})</label>
                     <input type="number" step="0.01" wire:model="variant_price" placeholder="Leave empty if same" class="block w-full bg-white dark:bg-slate-900 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-brand-500/20 rounded-xl shadow-sm text-sm" />
                     @error('variant_price') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
@@ -61,7 +66,7 @@
                     <input type="number" step="0.01" wire:model="cost_price" placeholder="0.00" class="block w-full bg-white dark:bg-slate-900 border min-h-[42px] border-slate-200 dark:border-slate-700 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-brand-500/20 rounded-xl shadow-sm text-sm" />
                     @error('cost_price') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
                 </div>
-                <div class="md:col-span-2 lg:col-span-5 flex justify-end mt-2">
+                <div class="md:col-span-2 lg:col-span-2 xl:col-span-6 flex justify-end mt-2">
                     <button type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/20 min-w-[120px] h-[42px]">
                         <x-lucide-save class="w-4 h-4" /> <span>{{ $editingVariantId ? 'Update' : 'Save' }}</span>
                     </button>

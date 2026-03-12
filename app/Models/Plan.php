@@ -18,10 +18,12 @@ class Plan extends Model
         'max_products',
         'max_quotes',
         'is_active',
+        'allow_email_notifications',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'allow_email_notifications' => 'boolean',
         'price' => 'decimal:2',
     ];
 

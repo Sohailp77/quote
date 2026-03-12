@@ -280,15 +280,81 @@
                                             </div>
 
                                             <div class="flex-1 min-w-0 pr-8 lg:pr-0">
-                                                <select
-                                                    class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-brand-500/20"
-                                                    wire:model.live="items.{{ $index }}.product_id" required>
-                                                    <option value="">Select Product...</option>
-                                                    @foreach ($products as $p)
-                                                        <option value="{{ data_get($p, 'id') }}">{{ data_get($p, 'name') }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
+                                                <div x-data="{
+                                                    open: false,
+                                                    search: '',
+                                                    value: @entangle('items.'.$index.'.product_id').live,
+                                                    options: [
+                                                        @foreach($products as $p)
+                                                            {
+                                                                label: '{{ addslashes(data_get($p, 'name')) }}',
+                                                                value: '{{ data_get($p, 'id') }}',
+                                                                badge: 'Stock: {{ data_get($p, 'stock_quantity', 0) }}',
+                                                                isLow: {{ (data_get($p, 'stock_quantity', 0) <= data_get($p, 'low_stock_threshold', 5)) ? 'true' : 'false' }}
+                                                            },
+                                                        @endforeach
+                                                    ],
+                                                    get filteredOptions() {
+                                                        if (this.search === '') {
+                                                            return this.options;
+                                                        }
+                                                        return this.options.filter(item => {
+                                                            return item.label.toLowerCase().includes(this.search.toLowerCase());
+                                                        });
+                                                    },
+                                                    get selectedLabel() {
+                                                        let selectedItem = this.options.find(i => String(i.value) === String(this.value));
+                                                        return selectedItem ? selectedItem.label : 'Select Product...';
+                                                    },
+                                                    selectOption(val) {
+                                                        this.value = val;
+                                                        this.open = false;
+                                                        this.search = '';
+                                                    }
+                                                }" class="relative w-full" @click.away="open = false">
+                                                    
+                                                    <!-- Dropdown Trigger button -->
+                                                    <button type="button" @click="open = !open" 
+                                                        class="w-full flex items-center justify-between bg-slate-50 dark:bg-slate-800 border-none rounded-xl py-3 px-4 text-sm font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-brand-500/20 text-left">
+                                                        <span x-text="selectedLabel" :class="!value ? 'text-slate-400' : ''"></span>
+                                                        <x-lucide-chevron-down class="w-4 h-4 text-slate-400" />
+                                                    </button>
+
+                                                    <!-- Dropdown Menu -->
+                                                    <div x-show="open" x-cloak x-transition.opacity
+                                                        class="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden flex flex-col max-h-64">
+                                                        
+                                                        <div class="p-2 border-b border-slate-100 dark:border-slate-700">
+                                                            <div class="relative">
+                                                                <x-lucide-search class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                                                <input type="text" x-model="search" placeholder="Search product..." 
+                                                                    class="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-lg pl-9 pr-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-brand-500/20 placeholder:text-slate-400">
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="overflow-y-auto p-2 space-y-1">
+                                                            <template x-for="(item, idx) in filteredOptions" :key="idx">
+                                                                <button type="button" @click="selectOption(item.value)" 
+                                                                    class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group"
+                                                                    :class="String(value) === String(item.value) ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'">
+                                                                    <div class="flex items-center gap-2">
+                                                                        <span x-text="item.label" class="font-semibold"></span>
+                                                                        <template x-if="item.isLow">
+                                                                            <span class="px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">
+                                                                                <x-lucide-alert-triangle class="w-3 h-3" /> Low Stock
+                                                                            </span>
+                                                                        </template>
+                                                                    </div>
+                                                                    <span x-text="item.badge" class="text-xs font-mono text-slate-400 dark:text-slate-500"></span>
+                                                                </button>
+                                                            </template>
+                                                            
+                                                            <div x-show="filteredOptions.length === 0" class="p-4 text-center text-sm text-slate-400">
+                                                                No matching products.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 @if ($productRef && !empty($productRef['description']))
                                                     <p
                                                         class="mt-2 text-xs text-slate-400 dark:text-slate-500 line-clamp-1 group-hover:line-clamp-none transition-all">

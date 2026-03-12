@@ -21,6 +21,7 @@ class VariantManager extends Component
     public $name = '';
     public $sku = '';
     public $stock_quantity = '';
+    public $low_stock_threshold = '5';
     public $variant_price = '';
     public $cost_price = '';
     public $image;
@@ -40,6 +41,7 @@ class VariantManager extends Component
             ],
             'variant_price' => 'nullable|numeric|min:0',
             'cost_price' => 'nullable|numeric|min:0',
+            'low_stock_threshold' => 'nullable|integer|min:0',
             'image' => 'nullable|image|max:10240',
         ];
 
@@ -74,6 +76,7 @@ class VariantManager extends Component
         $this->sku = $variant->sku;
         // stock_quantity is disabled during edit, so we don't need to populate it for editing purposes
         $this->stock_quantity = $variant->stock_quantity;
+        $this->low_stock_threshold = $variant->low_stock_threshold;
         $this->variant_price = $variant->variant_price;
         $this->cost_price = $variant->cost_price;
         $this->image = null; // Clear any existing file upload state
@@ -84,7 +87,8 @@ class VariantManager extends Component
     public function cancelEdit()
     {
         $this->editingVariantId = null;
-        $this->reset(['name', 'sku', 'stock_quantity', 'variant_price', 'cost_price', 'image']);
+        $this->reset(['name', 'sku', 'stock_quantity', 'low_stock_threshold', 'variant_price', 'cost_price', 'image']);
+        $this->low_stock_threshold = '5'; // Set default
         $this->showForm = false;
         $this->resetValidation();
     }
@@ -97,6 +101,7 @@ class VariantManager extends Component
             'product_id' => $this->product->id,
             'name' => $this->name,
             'sku' => empty($this->sku) ? null : $this->sku,
+            'low_stock_threshold' => empty($this->low_stock_threshold) ? 5 : $this->low_stock_threshold,
             'variant_price' => empty($this->variant_price) ? null : $this->variant_price,
             'cost_price' => empty($this->cost_price) ? null : $this->cost_price,
         ];

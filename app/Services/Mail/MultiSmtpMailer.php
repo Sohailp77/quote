@@ -12,6 +12,11 @@ use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransportFactory;
 class MultiSmtpMailer
 {
     /**
+     * Guard to prevent infinite recursion when called from model notify overrides.
+     */
+    private static $isProcessing = false;
+
+    /**
      * Send an email using the multi-SMTP failover logic.
      * 
      * @param mixed $notifiable
@@ -19,6 +24,55 @@ class MultiSmtpMailer
      * @return bool
      */
     public function send($notifiable, $notification)
+    {
+        if (self::$isProcessing) {
+            $notifiable->notify($notification);
+            return true;
+        }
+
+        self::$isProcessing = true;
+
+        try {
+            /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\SmtpConfiguration> $configs */
+            $configs = SmtpConfiguration::where('is_active', true)
+                ->orderBy('priority')
+                ->orderBy('last_used_at', 'asc')
+                ->get();
+
+            if ($configs->isEmpty()) {
+                Log::error("MultiSmtpMailer: No active SMTP configurations found. Falling back to default mailer.");
+                $notifiable->notify($notification);
+                return false;
+            }
+
+            foreach ($configs as $config) {
+                try {
+                    $this->applyConfig($config);
+                    
+                    $notifiable->notify($notification);
+                    
+                    $config->update(['last_used_at' => now(), 'fail_count' => 0]);
+                    return true;
+                } catch (\Exception $e) {
+                    Log::warning("MultiSmtpMailer: Failed sending with SMTP [{$config->name}]. Error: {$e->getMessage()}");
+                    
+                    $config->increment('fail_count');
+                    $config->update([
+                        'last_fail_at' => now(),
+                        'last_error' => $e->getMessage(),
+                        'is_active' => $config->fail_count < 5 // Deactivate after 5 failures
+                    ]);
+                }
+            }
+
+            Log::error("MultiSmtpMailer: All SMTP configurations failed.");
+            return false;
+        } finally {
+            self::$isProcessing = false;
+        }
+    }
+
+    public function sendMailable($to, \Illuminate\Mail\Mailable $mailable)
     {
         /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\SmtpConfiguration> $configs */
         $configs = SmtpConfiguration::where('is_active', true)
@@ -28,7 +82,7 @@ class MultiSmtpMailer
 
         if ($configs->isEmpty()) {
             Log::error("MultiSmtpMailer: No active SMTP configurations found. Falling back to default mailer.");
-            $notifiable->notify($notification);
+            Mail::to($to)->send($mailable);
             return false;
         }
 
@@ -36,7 +90,7 @@ class MultiSmtpMailer
             try {
                 $this->applyConfig($config);
                 
-                $notifiable->notify($notification);
+                Mail::to($to)->send($mailable);
                 
                 $config->update(['last_used_at' => now(), 'fail_count' => 0]);
                 return true;

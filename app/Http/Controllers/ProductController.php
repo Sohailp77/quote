@@ -59,6 +59,7 @@ class ProductController extends Controller
             'stock_quantity' => 'nullable|integer|min:0',
             'opening_stock' => 'nullable|integer|min:0',
             'opening_stock_unit_cost' => 'nullable|numeric|min:0',
+            'low_stock_threshold' => 'nullable|integer|min:0',
             'unit_size' => 'nullable|numeric|min:0',
             'specifications' => 'nullable|array',
         ]);
@@ -145,6 +146,7 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'cost_price' => 'nullable|numeric|min:0',
             'stock_quantity' => 'nullable|integer|min:0',
+            'low_stock_threshold' => 'nullable|integer|min:0',
             'unit_size' => 'nullable|numeric|min:0',
             'specifications' => 'nullable|array',
             'image' => 'nullable|image|max:10240',

@@ -187,6 +187,32 @@
         @php
             $incomingCount = $orders->where('status', '!=', 'received')->count();
             $incomingQuantity = $orders->where('status', '!=', 'received')->sum('quantity');
+
+            $lowStockItems = collect();
+            foreach($products as $p) {
+                if ($p->variants && $p->variants->isNotEmpty()) {
+                    foreach($p->variants as $v) {
+                        if ($v->isLowStock()) {
+                            $lowStockItems->push((object)[
+                                'name' => $p->name . ' - ' . $v->name,
+                                'stock' => $v->stock_quantity,
+                                'threshold' => $v->low_stock_threshold ?? 5,
+                                'cost' => $v->cost_price ?? null
+                            ]);
+                        }
+                    }
+                } else {
+                    if ($p->isLowStock()) {
+                        $lowStockItems->push((object)[
+                            'name' => $p->name,
+                            'stock' => $p->stock_quantity,
+                            'threshold' => $p->low_stock_threshold ?? 5,
+                            'cost' => $p->cost_price ?? null
+                        ]);
+                    }
+                }
+            }
+            $lowStockItems = $lowStockItems->sortBy('stock')->take(5); // Show top 5 lowest
         @endphp
 
         <!-- KPI Sidebar Suggestions -->
@@ -209,6 +235,41 @@
                         <p class="text-2xl font-black">{{ $incomingQuantity }}</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- Low Stock Widgets -->
+            <div class="bg-white dark:bg-slate-900 rounded-[32px] p-6 lg:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-slate-100 dark:border-slate-800">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <x-lucide-alert-triangle class="w-5 h-5 text-red-500" /> Action Required (Low Stock)
+                    </h3>
+                    <span class="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 py-1 px-3 rounded-full text-xs font-black">{{ $lowStockItems->count() }} items</span>
+                </div>
+
+                @if($lowStockItems->isEmpty())
+                    <div class="text-center py-6">
+                        <x-lucide-check-circle-2 class="w-10 h-10 text-emerald-400 mx-auto mb-2 opacity-50" />
+                        <p class="text-sm font-bold text-slate-500">All products are well stocked!</p>
+                    </div>
+                @else
+                    <div class="space-y-3">
+                        @foreach($lowStockItems as $item)
+                        <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">{{ $item->name }}</h4>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    Current Stock: <span class="font-bold {{ $item->stock < 0 ? 'text-red-600' : 'text-amber-600' }}">{{ $item->stock }}</span> 
+                                    <span class="text-slate-300 dark:text-slate-600 mx-1">|</span> Threshold: {{ $item->threshold }}
+                                </p>
+                            </div>
+                            <!-- Livewire button could go here or jump to top modal -->
+                            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="text-xs font-bold bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 px-3 py-1.5 rounded-xl transition">
+                                Reorder
+                            </button>
+                        </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         </div>
 

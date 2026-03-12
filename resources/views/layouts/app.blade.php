@@ -106,6 +106,7 @@
         </main>
         <x-global-notifications />
         <x-stock-warning-modal />
+        <x-low-stock-alert-modal />
     </div>
     <!-- Initialize Lucide Icons -->
     <script></script>

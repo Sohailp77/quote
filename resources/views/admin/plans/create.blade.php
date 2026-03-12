@@ -65,6 +65,15 @@
                             <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Plan is Active</span>
                         </label>
                     </div>
+
+                    <div class="col-span-1 flex items-end">
+                        <label class="flex items-center gap-2 cursor-pointer pb-2">
+                            <input type="hidden" name="allow_email_notifications" value="0">
+                            <input type="checkbox" name="allow_email_notifications" value="1" 
+                                class="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Allow Email Notifications</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="mt-8 flex justify-end gap-3">

@@ -43,6 +43,24 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Override the password reset notification to use MultiSmtpMailer.
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $notification = new \Illuminate\Auth\Notifications\ResetPassword($token);
+        app(\App\Services\Mail\MultiSmtpMailer::class)->send($this, $notification);
+    }
+
+    /**
+     * Override the email verification notification to use MultiSmtpMailer.
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $notification = new \Illuminate\Auth\Notifications\VerifyEmail;
+        app(\App\Services\Mail\MultiSmtpMailer::class)->send($this, $notification);
+    }
+
     public function hasTwoFactorEnabled(): bool
     {
         return !is_null($this->two_factor_secret) && !is_null($this->two_factor_confirmed_at);

@@ -29,7 +29,11 @@ class PlanController extends Controller
             'max_products' => 'nullable|integer|min:1',
             'max_quotes' => 'nullable|integer|min:1',
             'is_active' => 'boolean',
+            'allow_email_notifications' => 'boolean',
         ]);
+
+        $validated['is_active'] = $request->has('is_active');
+        $validated['allow_email_notifications'] = $request->has('allow_email_notifications');
 
         Plan::create($validated);
 
@@ -51,7 +55,11 @@ class PlanController extends Controller
             'max_products' => 'nullable|integer|min:1',
             'max_quotes' => 'nullable|integer|min:1',
             'is_active' => 'boolean',
+            'allow_email_notifications' => 'boolean',
         ]);
+
+        $validated['is_active'] = $request->has('is_active');
+        $validated['allow_email_notifications'] = $request->has('allow_email_notifications');
 
         $plan->update($validated);
 

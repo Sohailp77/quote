@@ -36,29 +36,101 @@
                         <label
                             class="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Select
                             Product</label>
-                        <select wire:model.live="selectedProductString"
-                            class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-100 transition focus:outline-none min-h-[42px]"
-                            required>
-                            <option value="">Choose a product...</option>
-                            @foreach($products as $p)
-                                @if($p->variants && $p->variants->isNotEmpty())
-                                    <optgroup label="{{ $p->name }}">
-                                        <option value="{{ json_encode(['product_id' => $p->id, 'variant_id' => null]) }}">
-                                            {{ $p->name }} (Base) (Stock: {{ $p->stock_quantity }})
-                                        </option>
+                        <div x-data="{
+                            open: false,
+                            search: '',
+                            value: @entangle('selectedProductString').live,
+                            options: [
+                                @foreach($products as $p)
+                                    @if($p->variants && $p->variants->isNotEmpty())
+                                        {
+                                            label: '{{ addslashes($p->name) }} (Base)',
+                                            badge: 'Stock: {{ $p->stock_quantity }}',
+                                            group: '{{ addslashes($p->name) }}',
+                                            value: '{{ addslashes(json_encode(['product_id' => $p->id, 'variant_id' => null])) }}',
+                                            isLow: {{ $p->isLowStock() ? 'true' : 'false' }}
+                                        },
                                         @foreach($p->variants as $v)
-                                            <option value="{{ json_encode(['product_id' => $p->id, 'variant_id' => $v->id]) }}">
-                                                {{ $p->name }} - {{ $v->name }} (Stock: {{ $v->stock_quantity }})
-                                            </option>
+                                            {
+                                                label: '{{ addslashes($p->name) }} - {{ addslashes($v->name) }}',
+                                                badge: 'Stock: {{ $v->stock_quantity }}',
+                                                group: '{{ addslashes($p->name) }}',
+                                                value: '{{ addslashes(json_encode(['product_id' => $p->id, 'variant_id' => $v->id])) }}',
+                                                isLow: {{ $v->isLowStock() ? 'true' : 'false' }}
+                                            },
                                         @endforeach
-                                    </optgroup>
-                                @else
-                                    <option value="{{ json_encode(['product_id' => $p->id, 'variant_id' => null]) }}">
-                                        {{ $p->name }} (Stock: {{ $p->stock_quantity }})
-                                    </option>
-                                @endif
-                            @endforeach
-                        </select>
+                                    @else
+                                        {
+                                            label: '{{ addslashes($p->name) }}',
+                                            badge: 'Stock: {{ $p->stock_quantity }}',
+                                            group: null,
+                                            value: '{{ addslashes(json_encode(['product_id' => $p->id, 'variant_id' => null])) }}',
+                                            isLow: {{ $p->isLowStock() ? 'true' : 'false' }}
+                                        },
+                                    @endif
+                                @endforeach
+                            ],
+                            get filteredOptions() {
+                                if (this.search === '') {
+                                    return this.options;
+                                }
+                                return this.options.filter(item => {
+                                    return item.label.toLowerCase().includes(this.search.toLowerCase());
+                                });
+                            },
+                            get selectedLabel() {
+                                let selectedItem = this.options.find(i => i.value === this.value);
+                                return selectedItem ? selectedItem.label : 'Search and select a product...';
+                            },
+                            selectOption(val) {
+                                this.value = val;
+                                this.open = false;
+                                this.search = '';
+                            }
+                        }" class="relative w-full" @click.away="open = false">
+                            
+                            <!-- Dropdown Trigger button -->
+                            <button type="button" @click="open = !open" 
+                                class="w-full flex items-center justify-between bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-slate-900 transition focus:outline-none min-h-[42px] text-left">
+                                <span x-text="selectedLabel" :class="value === '' ? 'text-slate-400' : ''"></span>
+                                <x-lucide-chevron-down class="w-4 h-4 text-slate-400" />
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div x-show="open" x-cloak x-transition.opacity
+                                class="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-72">
+                                
+                                <div class="p-2 border-b border-slate-100 dark:border-slate-700">
+                                    <div class="relative">
+                                        <x-lucide-search class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                        <input type="text" x-model="search" placeholder="Type to search..." 
+                                            class="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl pl-9 pr-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-brand-500/20 placeholder:text-slate-400">
+                                    </div>
+                                </div>
+
+                                <div class="overflow-y-auto p-2 space-y-1">
+                                    <template x-for="(item, index) in filteredOptions" :key="index">
+                                        <button type="button" @click="selectOption(item.value)" 
+                                            class="w-full text-left px-3 py-2 rounded-xl text-sm transition-colors flex items-center justify-between group"
+                                            :class="value === item.value ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'">
+                                            <div class="flex items-center gap-2">
+                                                <span x-text="item.label" class="font-semibold"></span>
+                                                <template x-if="item.isLow">
+                                                    <span class="px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">
+                                                        <x-lucide-alert-triangle class="w-3 h-3" /> Low Stock
+                                                    </span>
+                                                </template>
+                                            </div>
+                                            <span x-text="item.badge" class="text-xs font-mono text-slate-400 dark:text-slate-500"></span>
+                                        </button>
+                                    </template>
+                                    
+                                    <div x-show="filteredOptions.length === 0" class="p-4 text-center text-sm text-slate-400">
+                                        No products found.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         @error('product_id') <span class="text-xs text-red-500 mt-2 font-bold ml-1">{{ $message }}</span>
                         @enderror
                         @error('product_variant_id') <span
@@ -79,11 +151,16 @@
                             <label
                                 class="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Unit
                                 Cost ({{ $appSettings['currency_symbol'] ?? '₹' }})</label>
-                            <input type="number" step="0.01" wire:model="unit_cost"
+                            <input type="number" step="0.01" wire:model.live="unit_cost"
                                 class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-slate-900 transition focus:outline-none min-h-[42px]"
                                 placeholder="0.00" required />
                             @error('unit_cost') <span class="text-xs text-red-500 mt-2 font-bold ml-1">{{ $message }}</span>
                             @enderror
+                            
+                            <div class="mt-3 ml-1 flex items-center gap-2">
+                                <input type="checkbox" id="update_cost_price" wire:model="update_cost_price" class="rounded text-slate-900 focus:ring-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:checked:bg-white dark:checked:text-slate-900">
+                                <label for="update_cost_price" class="text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer">Update product catalog price</label>
+                            </div>
                         </div>
                     </div>
 
